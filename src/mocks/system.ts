@@ -139,10 +139,10 @@ let globalSettings = {
 
 // ==================== HANDLERS ====================
 export const systemHandlers = [
-    // ========== JOB LEVELS ==========
+    // ========== ROLES ==========
 
-    // Get Job Levels List
-    http.get('/api/admin/job-levels', async () => {
+    // Get Roles List
+    http.get('/api/admin/roles', async () => {
         await delay(400)
 
         const listWithCounts = jobLevels.map(jl => ({
@@ -157,8 +157,8 @@ export const systemHandlers = [
         })
     }),
 
-    // Create Job Level
-    http.post('/api/admin/job-levels', async ({ request }) => {
+    // Create Role
+    http.post('/api/admin/roles', async ({ request }) => {
         await delay(600)
         const body = await request.json() as any
 
@@ -175,13 +175,13 @@ export const systemHandlers = [
 
         return HttpResponse.json({
             code: 0,
-            msg: 'Job Level created successfully',
+            msg: 'Role created successfully',
             data: newJobLevel
         })
     }),
 
-    // Update Job Level
-    http.put('/api/admin/job-levels/:id', async ({ params, request }) => {
+    // Update Role
+    http.put('/api/admin/roles/:id', async ({ params, request }) => {
         await delay(600)
         const id = Number(params.id)
         const body = await request.json() as any
@@ -190,7 +190,7 @@ export const systemHandlers = [
         if (index === -1) {
             return HttpResponse.json({
                 code: 404,
-                msg: 'Job Level not found'
+                msg: 'Role not found'
             }, { status: 404 })
         }
 
@@ -206,13 +206,13 @@ export const systemHandlers = [
 
         return HttpResponse.json({
             code: 0,
-            msg: 'Job Level updated successfully',
+            msg: 'Role updated successfully',
             data: jobLevels[index]
         })
     }),
 
-    // Delete Job Level
-    http.delete('/api/admin/job-levels/:id', async ({ params }) => {
+    // Delete Role
+    http.delete('/api/admin/roles/:id', async ({ params }) => {
         await delay(500)
         const id = Number(params.id)
 
@@ -229,7 +229,7 @@ export const systemHandlers = [
         if (index === -1) {
             return HttpResponse.json({
                 code: 404,
-                msg: 'Job Level not found'
+                msg: 'Role not found'
             }, { status: 404 })
         }
 
@@ -237,7 +237,7 @@ export const systemHandlers = [
 
         return HttpResponse.json({
             code: 0,
-            msg: 'Job Level deleted successfully'
+            msg: 'Role deleted successfully'
         })
     }),
 

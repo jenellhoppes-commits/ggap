@@ -35,29 +35,193 @@ function createRandomAgent(id: number, parentId: number | null = null, level: nu
 function createRandomMerchant(id: number): Merchant {
     const walletMode = faker.helpers.arrayElement(['transfer', 'seamless']) as 'transfer' | 'seamless'
     const displayId = `OP-${(1000 + id).toString()}`
+    const displayCurrency = faker.helpers.arrayElement(['TWD', 'PHP', 'THB', 'VND', 'IDR']) as Merchant['currency_type']
+    const displayCurrencyRates: Record<string, number> = {
+        TWD: 32,
+        PHP: 58,
+        THB: 36,
+        VND: 25500,
+        IDR: 16200
+    }
+    const baseRate = displayCurrencyRates[displayCurrency] ?? 32
+    const serviceFeeRate = 0.005
+    const displayCurrencies = Array.from(new Set([
+        displayCurrency,
+        ...faker.helpers.arrayElements(['TWD', 'PHP', 'THB', 'VND', 'IDR'] as Merchant['currency_type'][], { min: 1, max: 3 })
+    ])) as Merchant['currency_type'][]
+    const todayBet = faker.number.float({ min: 25000, max: 800000, fractionDigits: 2 })
+    const todayPayout = todayBet * faker.number.float({ min: 0.78, max: 1.04, fractionDigits: 4 })
+    const settlementTodayBet = todayBet / baseRate
+    const settlementTodayPayout = todayPayout / baseRate
+    const settlementTodayGgr = settlementTodayBet - settlementTodayPayout
+    const serviceFeeAmount = Math.max(settlementTodayGgr, 0) * serviceFeeRate
+    const agent = faker.helpers.arrayElement([
+        { id: 1, code: 'AGT-DIRECT', name: '平台直營代理', direct: true, level: 1 as const, parent: null, root: 'AGT-DIRECT', settlement: 'AGT-DIRECT', path: 'AGT-DIRECT', upstream: { PG: 0.07, JILI: 0.085, EVO: 0.1, PP: 0.082 } },
+        { id: 2, code: 'AGT-SEA-001', name: 'SEA Growth Agent', direct: false, level: 1 as const, parent: null, root: 'AGT-SEA-001', settlement: 'AGT-SEA-001', path: 'AGT-SEA-001', upstream: { PG: 0.075, JILI: 0.09, EVO: 0.095, PP: 0.078 } },
+        { id: 3, code: 'AGT-SEA-SUB01', name: 'SEA Sub Agent 01', direct: false, level: 2 as const, parent: 'AGT-SEA-001', root: 'AGT-SEA-001', settlement: 'AGT-SEA-001', path: 'AGT-SEA-001 / AGT-SEA-SUB01', upstream: { PG: 0.088, JILI: 0.102, EVO: 0.108, PP: 0.092 } },
+        { id: 4, code: 'AGT-SEA-SUB01-L3', name: 'SEA Local Desk L3', direct: false, level: 3 as const, parent: 'AGT-SEA-SUB01', root: 'AGT-SEA-001', settlement: 'AGT-SEA-001', path: 'AGT-SEA-001 / AGT-SEA-SUB01 / AGT-SEA-SUB01-L3', upstream: { PG: 0.096, JILI: 0.11, EVO: 0.116, PP: 0.1 } }
+    ])
+    const quoteProviders = [
+        { provider_id: 'PG', provider_name: 'PG Soft', cost: 0.04 },
+        { provider_id: 'JILI', provider_name: 'JILI', cost: 0.05 },
+        { provider_id: 'EVO', provider_name: 'Evolution', cost: 0.06 },
+        { provider_id: 'PP', provider_name: 'Pragmatic Play', cost: 0.05 }
+    ]
+    const merchantQuoteRates = quoteProviders.map((provider) => {
+        const upstreamRate = agent.upstream[provider.provider_id as keyof typeof agent.upstream]
+        const quoteRate = upstreamRate + faker.number.float({ min: 0.008, max: 0.025, fractionDigits: 4 })
+        return {
+            provider_id: provider.provider_id,
+            provider_name: provider.provider_name,
+            provider_cost_rate_snapshot: provider.cost,
+            agent_upstream_rate: upstreamRate,
+            quote_markup_rate: quoteRate - upstreamRate,
+            quote_markup_source: 'provider_override' as const,
+            merchant_quote_rate: quoteRate,
+            merchant_margin_rate: quoteRate - upstreamRate,
+            rate_source_agent_id: agent.code,
+            rate_source_agent_level: agent.level,
+            effective_at: '2026-07-01T01:00:00.000Z',
+            status: 'active' as const
+        }
+    })
+    const status = faker.helpers.weightedArrayElement([
+        { weight: 70, value: 'active' },
+        { weight: 16, value: 'disabled' },
+        { weight: 10, value: 'frozen' },
+        { weight: 4, value: 'archived' }
+    ]) as Merchant['status']
+    const merchantName = faker.helpers.arrayElement([
+        'Golden Dragon Gaming',
+        'NovaPlay Entertainment',
+        'Blue Whale Interactive',
+        'Royal Ace Group',
+        'Lucky Star Digital',
+        'HyperWin Network'
+    ])
+    const enabledProviderCount = faker.number.int({ min: 2, max: 5 })
+    const enabledGameCount = faker.number.int({ min: 80, max: 620 })
 
     return {
         id,
         display_id: displayId,
+        merchant_code: displayId,
         site_code: faker.string.alpha({ length: 3, casing: 'upper' }),
         account: faker.internet.username(),
-        name: faker.company.name(), // Keeping as is, but UI might use this or remarks
-        remarks: faker.lorem.sentence({ min: 3, max: 8 }), // New remarks field
-        currency_type: faker.helpers.arrayElement(['TWD', 'CNY', 'USD']),
+        name: merchantName,
+        merchant_name: merchantName,
+        merchant_type: 'merchant',
+        remarks: faker.helpers.arrayElement(['正式營運商戶', '待完成 Production 上線檢查', 'VIP 商務合作戶', 'Sandbox 驗證中']),
+        contact_name: faker.person.fullName(),
+        contact_email: faker.internet.email(),
+        telegram: `@${faker.internet.username().toLowerCase()}`,
+        phone: faker.phone.number(),
+        currency_type: displayCurrency,
+        supported_currencies: displayCurrencies,
+        multi_currency_enabled: true,
+        display_currencies: displayCurrencies,
+        default_display_currency: displayCurrency,
+        settlement_currency: 'USDT',
+        callback_amount_mode: 'settlement_currency',
+        service_fee_rate: serviceFeeRate,
+        service_fee_amount: Number(serviceFeeAmount.toFixed(4)),
+        base_usdt_amount: Number(settlementTodayGgr.toFixed(4)),
+        final_settlement_usdt: Number((settlementTodayGgr + serviceFeeAmount).toFixed(4)),
+        daily_settlement_time: '01:00 BJT',
+        fx_rate_update_time: '00:00 BJT',
+        exchange_fee_rate: serviceFeeRate,
+        base_rate: baseRate,
+        final_rate: baseRate,
+        exchange_rate_id: `FX-${displayCurrency}-USDT-${faker.date.recent({ days: 1 }).toISOString().slice(0, 10).replace(/-/g, '')}`,
+        rate_locked_at: faker.date.recent({ days: 1 }).toISOString(),
         percent: faker.number.float({ min: 10, max: 90, fractionDigits: 2 }), // Refers to revenue_share
         revenue_share: faker.number.float({ min: 10, max: 90, fractionDigits: 2 }),
+        fixed_fee: faker.number.float({ min: 0, max: 5000, fractionDigits: 2 }),
+        minimum_guarantee: faker.number.float({ min: 0, max: 20000, fractionDigits: 2 }),
+        settlement_cycle: faker.helpers.arrayElement(['weekly', 'monthly']),
+        special_rate_count: faker.number.int({ min: 0, max: 6 }),
         authorized_providers: faker.helpers.arrayElements(['pg', 'evo', 'pp', 'jili', 'habanero'], { min: 0, max: 3 }),
-        state: faker.helpers.arrayElement([0, 1]),
+        enabled_provider_count: enabledProviderCount,
+        enabled_game_count: enabledGameCount,
+        disabled_game_count: faker.number.int({ min: 0, max: 24 }),
+        game_package: faker.helpers.arrayElement(['Default Global Pack', 'VIP Slot Pack', 'Live Casino Pack', 'SEA Market Pack']),
+        state: status === 'active' ? 1 : 0,
+        status,
         created_at: faker.date.past().toISOString(),
+        updated_at: faker.date.recent({ days: 12 }).toISOString(),
         // Extended fields
         walletMode,
+        wallet_mode: walletMode,
+        api_key: `ak_${faker.string.alphanumeric(18).toLowerCase()}`,
+        api_secret_masked: 'sk_live_****************',
         secretKey: faker.string.uuid(),
+        callback_url: `https://wallet.${faker.internet.domainName()}/ggap/callback`,
         ipWhitelist: [faker.internet.ip(), faker.internet.ip()],
-        baseCurrency: 'USD',
+        ip_whitelist: [faker.internet.ip(), faker.internet.ip()],
+        sign_method: faker.helpers.arrayElement(['HMAC-SHA256', 'RSA']),
+        api_status: status === 'active' ? faker.helpers.arrayElement(['active', 'testing']) : 'disabled',
+        environment: faker.helpers.arrayElement(['sandbox', 'production']),
+        balance_url: `https://wallet.${faker.internet.domainName()}/balance`,
+        bet_url: `https://wallet.${faker.internet.domainName()}/bet`,
+        win_url: `https://wallet.${faker.internet.domainName()}/win`,
+        rollback_url: `https://wallet.${faker.internet.domainName()}/rollback`,
+        refund_url: `https://wallet.${faker.internet.domainName()}/refund`,
+        timeout_ms: faker.helpers.arrayElement([3000, 5000, 8000]),
+        retry_count: faker.number.int({ min: 1, max: 3 }),
+        allow_negative_balance: faker.number.float({ min: 0, max: 1 }) < 0.18,
+        idempotency_enabled: true,
+        baseCurrency: 'USDT',
+        parent_agent: agent.name,
+        agent_id: agent.id,
+        agent_code: agent.code,
+        agent_name: agent.name,
+        agent_level: agent.level,
+        parent_agent_code: agent.parent,
+        root_agent_code: agent.root,
+        settlement_agent_code: agent.settlement,
+        agent_path: agent.path,
+        is_direct_agent: agent.direct,
+        settlement_owner_type: 'agent',
+        agent_binding: true,
+        agent_commission_mode: faker.helpers.arrayElement(['GGR', 'NGR', 'valid_bet']),
+        agent_commission_rate: faker.number.float({ min: 2, max: 18, fractionDigits: 2 }),
+        merchant_quote_rates: merchantQuoteRates,
+        agent_effective_at: faker.date.past().toISOString(),
+        today_bet: Number(todayBet.toFixed(2)),
+        today_payout: Number(todayPayout.toFixed(2)),
+        today_ggr: Number((todayBet - todayPayout).toFixed(2)),
+        settlement_today_bet: Number(settlementTodayBet.toFixed(4)),
+        settlement_today_payout: Number(settlementTodayPayout.toFixed(4)),
+        settlement_today_ggr: Number(settlementTodayGgr.toFixed(4)),
+        active_players: faker.number.int({ min: 120, max: 9500 }),
+        transaction_success_rate: faker.number.float({ min: 96.2, max: 99.99, fractionDigits: 2 }),
+        failed_transactions: faker.number.int({ min: 0, max: 38 }),
+        receivable_amount: faker.number.float({ min: 1000, max: 96000, fractionDigits: 2 }),
+        pending_settlement_amount: faker.number.float({ min: 0, max: 48000, fractionDigits: 2 }),
+        invoice_status: faker.helpers.arrayElement(['none', 'pending', 'confirmed', 'overdue']),
+        agent_transfer_logs: Array.from({ length: agent.direct ? 1 : 2 }).map((_, index) => ({
+            transfer_no: `TRF-${faker.string.numeric(8)}`,
+            from_agent: index === 0 ? '未指定' : '平台直營代理',
+            to_agent: index === 0 ? agent.name : faker.helpers.arrayElement(['SEA Growth Agent', 'VIP Channel Agent']),
+            effective_at: faker.date.past().toISOString(),
+            operator: faker.helpers.arrayElement(['Admin', 'Operation Admin']),
+            reason: index === 0 ? '新增商戶預設歸屬' : '商務轉移代理歸屬'
+        })),
+        audit_logs: Array.from({ length: 4 }).map((_, index) => ({
+            audit_no: `AUD-${faker.string.numeric(8)}`,
+            operated_at: faker.date.recent({ days: index + 1 }).toISOString(),
+            operator: faker.helpers.arrayElement(['Admin', 'Finance Admin', 'Tech Admin', 'Risk Admin']),
+            action: faker.helpers.arrayElement(['更新商戶設定', '重置 API Secret', '調整遊戲權限', '測試 Callback URL']),
+            target: displayId,
+            ip_address: faker.internet.ip(),
+            trace_id: `trace-${faker.string.uuid()}`,
+            result: 'success'
+        })),
         // Balance only for transfer wallet mode
         balance: walletMode === 'transfer'
             ? faker.number.float({ min: 1000, max: 100000, fractionDigits: 2 })
-            : undefined
+            : undefined,
+        credit_limit: faker.number.float({ min: 10000, max: 500000, fractionDigits: 2 })
     }
 }
 
@@ -70,6 +234,19 @@ export const mockProviders: Provider[] = [
         status: 'active',
         type: 'Slot',
         gameCount: 128,
+        provider_settlement_currency: 'USDT',
+        provider_wallet_currency: 'USDT',
+        cost_billing_mode: 'GGR',
+        provider_cost_rate: 0.04,
+        negative_ggr_policy: 'carry_forward',
+        cost_rate_version: 'PG-COST-2026.07',
+        cost_rate_effective_at: '2026-07-01T00:00:00.000Z',
+        service_status: 'active',
+        integration_status: 'connected',
+        cost_rate_history: [
+            { version: 'PG-COST-2026.07', provider_cost_rate: 0.04, negative_ggr_policy: 'carry_forward', effective_at: '2026-07-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-06-25T03:00:00.000Z', remarks: 'MVP USDT 成本費率' },
+            { version: 'PG-COST-2026.06', provider_cost_rate: 0.045, negative_ggr_policy: 'carry_forward', effective_at: '2026-06-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-05-25T03:00:00.000Z' }
+        ],
         apiConfig: {
             apiUrl: 'https://api.pgsoft.com',
             merchantCode: 'AGG_TEST',
@@ -93,6 +270,18 @@ export const mockProviders: Provider[] = [
         status: 'active',
         type: 'Live',
         gameCount: 85,
+        provider_settlement_currency: 'USDT',
+        provider_wallet_currency: 'USDT',
+        cost_billing_mode: 'GGR',
+        provider_cost_rate: 0.06,
+        negative_ggr_policy: 'carry_forward',
+        cost_rate_version: 'EVO-COST-2026.07',
+        cost_rate_effective_at: '2026-07-01T00:00:00.000Z',
+        service_status: 'active',
+        integration_status: 'connected',
+        cost_rate_history: [
+            { version: 'EVO-COST-2026.07', provider_cost_rate: 0.06, negative_ggr_policy: 'carry_forward', effective_at: '2026-07-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-06-26T03:20:00.000Z' }
+        ],
         apiConfig: {
             apiUrl: 'https://api.evolution.com',
             merchantCode: 'AGG_EVO',
@@ -116,6 +305,18 @@ export const mockProviders: Provider[] = [
         status: 'active',
         type: 'Slot',
         gameCount: 256,
+        provider_settlement_currency: 'USDT',
+        provider_wallet_currency: 'USDT',
+        cost_billing_mode: 'GGR',
+        provider_cost_rate: 0.05,
+        negative_ggr_policy: 'zero_out',
+        cost_rate_version: 'PP-COST-2026.07',
+        cost_rate_effective_at: '2026-07-01T00:00:00.000Z',
+        service_status: 'active',
+        integration_status: 'connected',
+        cost_rate_history: [
+            { version: 'PP-COST-2026.07', provider_cost_rate: 0.05, negative_ggr_policy: 'zero_out', effective_at: '2026-07-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-06-24T04:10:00.000Z' }
+        ],
         apiConfig: {
             apiUrl: 'https://api.pragmaticplay.com',
             merchantCode: 'AGG_PP',
@@ -139,6 +340,18 @@ export const mockProviders: Provider[] = [
         status: 'maintenance',
         type: 'Slot',
         gameCount: 67,
+        provider_settlement_currency: 'USDT',
+        provider_wallet_currency: 'USDT',
+        cost_billing_mode: 'GGR',
+        provider_cost_rate: 0.052,
+        negative_ggr_policy: 'zero_out',
+        cost_rate_version: 'JILI-COST-2026.07',
+        cost_rate_effective_at: '2026-07-01T00:00:00.000Z',
+        service_status: 'maintenance',
+        integration_status: 'connected',
+        cost_rate_history: [
+            { version: 'JILI-COST-2026.07', provider_cost_rate: 0.052, negative_ggr_policy: 'zero_out', effective_at: '2026-07-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-06-23T06:00:00.000Z' }
+        ],
         apiConfig: {
             apiUrl: 'https://api.jili.com',
             merchantCode: 'AGG_JILI',
@@ -162,6 +375,18 @@ export const mockProviders: Provider[] = [
         status: 'active',
         type: 'Slot',
         gameCount: 142,
+        provider_settlement_currency: 'USDT',
+        provider_wallet_currency: 'USDT',
+        cost_billing_mode: 'GGR',
+        provider_cost_rate: 0.048,
+        negative_ggr_policy: 'carry_forward',
+        cost_rate_version: 'HAB-COST-2026.07',
+        cost_rate_effective_at: '2026-07-01T00:00:00.000Z',
+        service_status: 'active',
+        integration_status: 'testing',
+        cost_rate_history: [
+            { version: 'HAB-COST-2026.07', provider_cost_rate: 0.048, negative_ggr_policy: 'carry_forward', effective_at: '2026-07-01T00:00:00.000Z', changed_by: 'Finance', changed_at: '2026-06-21T08:00:00.000Z' }
+        ],
         apiConfig: {
             apiUrl: 'https://api.habanero.com',
             merchantCode: 'AGG_HAB',
@@ -188,35 +413,73 @@ export const handlers = [
     // Login API - Returns role-based tokens
     http.post('/api/login', async ({ request }) => {
         await delay(500)
-        const body = await request.json() as { username: string; password: string }
-        const { username, password } = body
+        const body = await request.json() as { username: string; password: string; portal?: string }
+        const { username, password, portal } = body
 
-        // Scenario A: Master Admin
+        const rejectWrongPortal = (accountPortal: string) => {
+            if (!portal || portal === accountPortal) return null
+            return HttpResponse.json({
+                success: false,
+                message: '此帳號不可登入目前入口，請切換正確後台。'
+            }, { status: 403 })
+        }
+
         if (username === 'admin' && password === 'admin123') {
+            const wrongPortal = rejectWrongPortal('admin')
+            if (wrongPortal) return wrongPortal
+
             return HttpResponse.json({
                 success: true,
                 token: 'mock-master-token-' + Date.now(),
+                id: 'USR-MASTER',
                 role: 'MASTER',
+                portal: 'admin',
+                data_scope: 'global',
                 name: 'Super Admin',
                 code: null
             })
         }
 
-        // Scenario B: Merchant
-        if (username === 'merchant' && password === '123456') {
+        if (username === 'agent' && password === 'agent123') {
+            const wrongPortal = rejectWrongPortal('agent')
+            if (wrongPortal) return wrongPortal
+
             return HttpResponse.json({
                 success: true,
-                token: 'mock-merchant-token-' + Date.now(),
-                role: 'MERCHANT',
-                name: 'Golden Dragon',
-                code: 'AGT001'
+                token: 'mock-agent-token-' + Date.now(),
+                id: 'USR-AGENT-L1',
+                role: 'AGENT',
+                portal: 'agent',
+                data_scope: 'agent_tree',
+                name: 'SEA Master Agent',
+                agent_id: 'AGT-SEA-001',
+                agent_level: 1,
+                code: 'AGT-SEA-001'
             })
         }
 
-        // Invalid credentials
+        if (username === 'merchant' && password === '123456') {
+            const wrongPortal = rejectWrongPortal('merchant')
+            if (wrongPortal) return wrongPortal
+
+            return HttpResponse.json({
+                success: true,
+                token: 'mock-merchant-token-' + Date.now(),
+                id: 'USR-MERCHANT',
+                role: 'MERCHANT',
+                portal: 'merchant',
+                data_scope: 'merchant_self',
+                name: 'Golden Dragon',
+                merchant_id: 'OP-1007',
+                merchant_code: 'OP-1007',
+                agent_id: 'AGT-SEA-001',
+                code: 'OP-1007'
+            })
+        }
+
         return HttpResponse.json({
             success: false,
-            message: 'Invalid username or password'
+            message: '帳號或密碼錯誤'
         }, { status: 401 })
     }),
 
@@ -355,6 +618,26 @@ export const handlers = [
             status: 'active' as const,
             type: body.type || 'Slot',
             gameCount: 0,
+            provider_settlement_currency: 'USDT' as const,
+            provider_wallet_currency: 'USDT' as const,
+            cost_billing_mode: 'GGR' as const,
+            provider_cost_rate: body.provider_cost_rate ?? 0,
+            negative_ggr_policy: body.negative_ggr_policy ?? 'carry_forward',
+            cost_rate_version: body.cost_rate_version || `${String(body.code).toUpperCase()}-COST-2026.07`,
+            cost_rate_effective_at: body.cost_rate_effective_at || new Date().toISOString(),
+            service_status: 'active' as const,
+            integration_status: 'testing' as const,
+            cost_rate_history: [
+                {
+                    version: body.cost_rate_version || `${String(body.code).toUpperCase()}-COST-2026.07`,
+                    provider_cost_rate: body.provider_cost_rate ?? 0,
+                    negative_ggr_policy: body.negative_ggr_policy ?? 'carry_forward',
+                    effective_at: body.cost_rate_effective_at || new Date().toISOString(),
+                    changed_by: 'Admin',
+                    changed_at: new Date().toISOString(),
+                    remarks: '新增供應商時建立成本費率'
+                }
+            ],
             apiConfig: body.apiConfig || {},
             contractConfig: body.contractConfig || {
                 settlement_currency: 'USD',

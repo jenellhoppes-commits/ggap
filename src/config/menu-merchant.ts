@@ -4,105 +4,63 @@ import { RouterLink } from 'vue-router'
 import type { MenuOption } from 'naive-ui'
 import { NIcon } from 'naive-ui'
 import {
-    DashboardOutlined,
-    BarChartOutlined,
-    DescriptionOutlined,
-    AttachMoneyOutlined,
+    AccountBalanceWalletOutlined,
     CodeOutlined,
-    SportsEsportsOutlined,
+    DashboardOutlined,
+    DescriptionOutlined,
     PeopleAltOutlined,
-    AccountBalanceWalletOutlined
+    SportsEsportsOutlined,
+    SyncAltOutlined
 } from '@vicons/material'
 
-// Icon render helper
 const renderIcon = (icon: Component) => () => h(NIcon, null, { default: () => h(icon) })
+const renderLink = (to: string, label: string) => () => h(RouterLink, { to }, { default: () => label })
 
-/**
- * Merchant Backend Menu Configuration
- * Based on DESIGN_SPEC.md Section 3: Merchant Backend (商戶後台)
- * All labels use i18n t() function for reactive language switching
- */
-export const merchantMenuOptions = (t: (key: string) => string): MenuOption[] => [
+export const merchantMenuOptions = (_t: (key: string) => string): MenuOption[] => [
     {
         type: 'group',
-        label: t('menu.overview'),
+        label: '總覽',
         key: 'overview-group',
         children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/dashboard' }, { default: () => t('menu.merchantDashboard') }),
-                key: 'merchant-dashboard',
-                icon: renderIcon(DashboardOutlined)
-            }
+            { label: renderLink('/merchant/dashboard', '商戶總覽'), key: 'merchant-dashboard', icon: renderIcon(DashboardOutlined) }
         ]
     },
     {
         type: 'group',
-        label: t('menu.gameManagement'),
-        key: 'game-group',
+        label: '會員管理',
+        key: 'player-group',
         children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/games' }, { default: () => t('menu.myGames') }),
-                key: 'merchant-games',
-                icon: renderIcon(SportsEsportsOutlined)
-            }
+            { label: renderLink('/merchant/players', '會員列表'), key: 'merchant-players', icon: renderIcon(PeopleAltOutlined) }
         ]
     },
     {
         type: 'group',
-        label: t('menu.reportCenter'),
-        key: 'report-group',
+        label: '投注管理',
+        key: 'betting-group',
         children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/reports/daily' }, { default: () => t('menu.dailyRevenue') }),
-                key: 'DailyReport',
-                icon: renderIcon(BarChartOutlined)
-            },
-            {
-                label: () => h(RouterLink, { to: '/merchant/reports/bet-query' }, { default: () => t('menu.betQuery') }),
-                key: 'merchant-bet-query',
-                icon: renderIcon(DescriptionOutlined)
-            }
+            { label: renderLink('/merchant/betting/bets', '注單查詢'), key: 'merchant-betting-bets', icon: renderIcon(DescriptionOutlined) },
+            { label: renderLink('/merchant/betting/transactions', '交易流水'), key: 'merchant-betting-transactions', icon: renderIcon(SyncAltOutlined) },
+            { label: renderLink('/merchant/betting/repairs', '補單 / 重送'), key: 'merchant-betting-repairs', icon: renderIcon(SyncAltOutlined) }
         ]
     },
     {
         type: 'group',
-        label: t('menu.financeCenter'),
-        key: 'finance-group',
+        label: '遊戲與錢包',
+        key: 'operation-group',
         children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/finance/invoices' }, { default: () => t('menu.myInvoices') }),
-                key: 'merchant-invoices',
-                icon: renderIcon(AttachMoneyOutlined)
-            },
-            {
-                label: () => h(RouterLink, { to: '/merchant/finance/funds' }, { default: () => t('merchant.fundRecord.title') }),
-                key: 'merchant-funds',
-                icon: renderIcon(AccountBalanceWalletOutlined)
-            }
+            { label: renderLink('/merchant/games', '我的遊戲'), key: 'merchant-games', icon: renderIcon(SportsEsportsOutlined) },
+            { label: renderLink('/merchant/finance/invoices', '錢包 / 帳單'), key: 'merchant-finance', icon: renderIcon(AccountBalanceWalletOutlined) }
         ]
     },
     {
         type: 'group',
-        label: t('menu.orgManagement'),
-        key: 'org-group',
-        children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/organization/sub-list' }, { default: () => t('menu.subAgent') }),
-                key: 'sub-agent-list',
-                icon: renderIcon(PeopleAltOutlined)
-            }
-        ]
-    },
-    {
-        type: 'group',
-        label: t('menu.developer'),
+        label: '串接資訊',
         key: 'developer-group',
         children: [
-            {
-                label: () => h(RouterLink, { to: '/merchant/developer' }, { default: () => t('menu.integrationInfo') }),
-                key: 'DeveloperCenter',
-                icon: renderIcon(CodeOutlined)
-            }
+            { label: renderLink('/merchant/developer/docs', 'API 文件'), key: 'merchant-developer-docs', icon: renderIcon(CodeOutlined) },
+            { label: renderLink('/merchant/developer/credentials', 'API 憑證 / 白名單'), key: 'DeveloperCenter', icon: renderIcon(CodeOutlined) },
+            { label: renderLink('/merchant/developer/callback-test', 'Callback 測試'), key: 'merchant-callback-test', icon: renderIcon(CodeOutlined) },
+            { label: renderLink('/merchant/developer/callback-logs', 'Callback 紀錄'), key: 'merchant-callback-logs', icon: renderIcon(DescriptionOutlined) }
         ]
     }
 ]

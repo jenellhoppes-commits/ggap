@@ -1,4 +1,5 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, h, computed } from 'vue'
 import { 
     NDataTable, NTag, NSelect, useMessage, NAlert, NButton, NSpace, NTooltip
@@ -7,27 +8,16 @@ import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import PageFilterBar from '../../../components/Common/PageFilterBar.vue'
 import StatusSwitch from '../../../components/Common/StatusSwitch.vue'
 import { useI18n } from 'vue-i18n'
+import { portalGameService } from '../../../services/portal/games'
+import type { PortalGame } from '../../../services/portal/games'
 
 const { t } = useI18n()
 const message = useMessage()
 const loading = ref(false)
 
-interface MerchantGame {
-    game_id: string
-    game_code: string
-    name_en: string
-    name_zh?: string
-    provider: string
-    type: string
-    rtp: number
-    merchant_enabled: boolean
-    master_enabled: boolean
-    thumbnail?: string
-    release_date: string
-    admin_status: 'active' | 'maintenance' | 'disabled'
-}
+type MerchantGame = PortalGame
 
-const games = ref<MerchantGame[]>([])
+const games = ref<PortalGame[]>([])
 const searchValue = ref('')
 const typeFilter = ref('all')
 const providerFilter = ref('all')
@@ -54,14 +44,11 @@ const switchStates = ref<Record<string, boolean>>({})
 const fetchGames = async () => {
     loading.value = true
     try {
-        const res = await fetch('/api/v2/agent/games')
-        const data = await res.json()
-        if (data.code === 0) {
-            games.value = data.data.list || []
-            games.value.forEach(g => {
-                switchStates.value[g.game_id] = g.merchant_enabled
-            })
-        }
+        const data = await portalGameService.listGames()
+        games.value = data.list || []
+        games.value.forEach(g => {
+            switchStates.value[g.game_id] = g.merchant_enabled
+        })
     } catch {
         message.error(t('merchantGame.loadFailed'))
     } finally {
@@ -79,11 +66,7 @@ const handleToggle = async (row: MerchantGame, newVal: boolean) => {
     row.merchant_enabled = newVal
     
     try {
-        await fetch('/api/v2/agent/games/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game_id: row.game_id, enabled: newVal })
-        })
+        await portalGameService.toggleGame(row.game_id, newVal)
         message.success(newVal ? t('merchantGame.gameEnabled') : t('merchantGame.gameDisabled'))
     } catch {
         switchStates.value[row.game_id] = !newVal
@@ -228,7 +211,7 @@ onMounted(fetchGames)
 <template>
     <div class="p-6">
         <h1 class="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>🎮</span> {{ t('merchantGame.title') }}
+            <span>Game</span> {{ t('merchantGame.title') }}
         </h1>
 
         <n-alert type="info" class="mb-4" :bordered="false">
@@ -273,7 +256,7 @@ onMounted(fetchGames)
 
         <n-data-table
             v-model:checked-row-keys="checkedRowKeys"
-            :columns="columns"
+            :columns="withTableSorters(columns)"
             :data="filteredGames"
             :loading="loading"
             :pagination="{ pageSize: 15 }"

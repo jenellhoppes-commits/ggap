@@ -5,24 +5,10 @@ import router from './router'
 import './style.css'
 import App from './App.vue'
 import i18n from './i18n'
+import { shouldUseDemoData } from './config/runtime'
 
 // ECharts plugin - must be imported before vue-echarts components are used
 import './plugins/echarts'
-
-// Tech Standards: Force Mock in Prod or if API is unreachable
-// In a real scenario, you might check for API availability, but for now we follow the standard:
-// "Modify to: whenever unable to connect to real API, OR VITE_USE_MOCK=true, start MSW"
-// Since we don't have a real API check yet, we'll default to checking the env var or dev mode.
-// However, the standard says "Remove if (import.meta.env.DEV)".
-// Note: We need to define the worker first.
-
-async function prepareApp() {
-    // CRITICAL: Always start MSW for Vercel/Production Demo
-    const { worker } = await import('./mocks/browser')
-    await worker.start({
-        onUnhandledRequest: 'bypass',
-    })
-}
 
 const app = createApp(App)
 
@@ -31,19 +17,22 @@ app.use(router)
 app.use(naive)
 app.use(i18n)
 
-// Ensure MSW starts (or fallback to manual)
-import { setupManualMock } from './mocks/manual'
+async function prepareApp() {
+    if (!shouldUseDemoData()) return
+
+    try {
+        const { worker } = await import('./mocks/browser')
+        await worker.start({ onUnhandledRequest: 'bypass' })
+    } catch (error) {
+        const { setupManualMock } = await import('./mocks/manual')
+        console.warn('Failed to start MSW, using manual mock fallback:', error)
+        setupManualMock()
+    }
+}
 
 prepareApp().then(() => {
     app.mount('#app')
-}).catch(e => {
-    console.error('Failed to start MSW:', e)
-    setupManualMock() // Activate fallback
+}).catch(error => {
+    console.error('Failed to prepare app:', error)
     app.mount('#app')
 })
-
-// Double safety: Activate manual mock immediately if in production/vercel to avoid race conditions
-// or just activate it alongside MSW? If MSW SW catches it, good. If not, manual mock catches it.
-// Window.fetch patch is "upstream" of Service Worker. So Manual Mock takes precedence.
-// Let's force Manual Mock for this user.
-setupManualMock()

@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { Merchant } from '../types/merchant'
+import { legacyService } from '../services/legacy'
 
 export function useMerchantList() {
     const loading = ref(false)
@@ -18,29 +19,11 @@ export function useMerchantList() {
         loading.value = true
         error.value = null
         try {
-            // Build query params
-            const query = new URLSearchParams()
-            if (params.level) query.append('level', params.level.toString())
-            if (params.parent_id) query.append('parent_id', params.parent_id.toString())
-            if (params.search) query.append('search', params.search)
-
-            // Using fetch as requested (no axios)
-            const response = await fetch(`/api/v2/agent/list?${query.toString()}`)
-
-            if (!response.ok) {
-                throw new Error(`HTTP Error: ${response.status}`)
-            }
-
-            const res = await response.json()
-
-            if (res.code !== 0) {
-                throw new Error(res.msg || 'Unknown API Error')
-            }
-
-            list.value = res.data.list
-            pagination.value.itemCount = res.data.total
+            const data = await legacyService.listMerchants(params)
+            list.value = data.list
+            pagination.value.itemCount = data.total
             // If backend doesn't return pageCount, calculate it
-            pagination.value.pageCount = Math.ceil(res.data.total / pagination.value.pageSize)
+            pagination.value.pageCount = Math.ceil(data.total / pagination.value.pageSize)
 
         } catch (err: any) {
             console.error('Fetch Merchant List Error:', err)

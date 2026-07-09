@@ -6,6 +6,7 @@ import {
     NSwitch, NInputNumber, NButton, useMessage 
 } from 'naive-ui'
 import type { Game } from '../../../../types/game'
+import { adminContentService } from '../../../../services/admin/content'
 
 const props = defineProps<{
     show: boolean
@@ -58,26 +59,15 @@ const handleSave = async () => {
     try {
         const payload = {
             id: props.game.game_id,
-            status: formModel.value.status ? 'active' : 'maintenance',
+            status: formModel.value.status ? 'active' as const : 'maintenance' as const,
             rtp: parseFloat(formModel.value.rtp),
             max_bet: formModel.value.max_bet
         }
 
-        // Mock API Call
-        const res = await fetch('/api/v2/game/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        const data = await res.json()
-
-        if (data.code === 0) {
-            message.success(t('game.configUpdated'))
-            emit('refresh')
-            handleClose()
-        } else {
-            message.error(data.msg || 'Update failed')
-        }
+        await adminContentService.updateGame(payload)
+        message.success(t('game.configUpdated'))
+        emit('refresh')
+        handleClose()
     } catch (e) {
         console.error('API Error Details:', e)
         message.error(t('game.saveFailed'))

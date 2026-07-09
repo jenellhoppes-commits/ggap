@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../../utils/tableSort"
 import { ref, watch, h } from 'vue'
 import { NDrawer, NDrawerContent, NDataTable, useMessage, NSpin } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import type { TransactionDetailRow } from '../../../../types/table'
+import { portalReportService } from '../../../../services/portal/reports'
 
 const props = defineProps<{
     show: boolean
@@ -20,12 +22,8 @@ const list = ref<TransactionDetailRow[]>([])
 const fetchTransactions = async () => {
     loading.value = true
     try {
-        // Mock API call
-        const res = await fetch(`/api/v2/merchant/reports/transactions?date=${props.date}`)
-        const data = await res.json()
-        if (data.code === 0) {
-            list.value = data.data.list
-        }
+        const data = await portalReportService.listTransactions({ date: props.date })
+        list.value = data.list
     } catch (e) {
         message.error('Failed to load transactions')
     } finally {
@@ -92,7 +90,7 @@ const columns: DataTableColumns<TransactionDetailRow> = [
         <n-drawer-content :title="`${date} ${t('merchantReports.transactionDetails')}`" closable>
             <n-spin :show="loading">
                 <n-data-table
-                    :columns="columns"
+                    :columns="withTableSorters(columns)"
                     :data="list"
                     :row-key="(row: TransactionDetailRow) => row.id"
                     striped

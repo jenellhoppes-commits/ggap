@@ -5,6 +5,7 @@ import {
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import CopyableText from '../../../components/Common/CopyableText.vue'
+import { portalDeveloperService } from '../../../services/portal/developer'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -19,9 +20,7 @@ const loading = ref(false)
 const fetchCreds = async () => {
     loading.value = true
     try {
-        const res = await fetch('/api/v2/agent/credentials')
-        const data = await res.json()
-        credentials.value = data.data || { merchant_code: '', secret_key: '', whitelist: [] }
+        credentials.value = await portalDeveloperService.getCredentials()
     } finally {
         loading.value = false
     }
@@ -30,11 +29,7 @@ const fetchCreds = async () => {
 const updateWhitelist = async (newList: string[]) => {
     credentials.value.whitelist = newList
     try {
-        await fetch('/api/v2/agent/whitelist', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ whitelist: newList })
-        })
+        await portalDeveloperService.updateWhitelist(newList)
         message.success(t('developerCenter.whitelistUpdated'))
     } catch {
         message.error(t('developerCenter.whitelistFailed'))

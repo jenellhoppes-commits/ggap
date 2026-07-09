@@ -7,6 +7,7 @@ import {
 import { useI18n } from 'vue-i18n'
 import type { FormRules } from 'naive-ui'
 import type { Agent } from '../../../types/agent'
+import { portalOrganizationService } from '../../../services/portal/organization'
 
 const props = defineProps<{
     show: boolean
@@ -87,10 +88,6 @@ const handleSubmit = async () => {
         await formRef.value?.validate()
         loading.value = true
         
-        const isCreate = props.type === 'create'
-        const url = isCreate ? '/api/v1/agent/create' : '/api/v1/agent/update'
-        const method = isCreate ? 'POST' : 'PUT'
-        
         const payload = {
             ...formModel.value,
             parent_id: props.parentAgent?.id,
@@ -98,20 +95,10 @@ const handleSubmit = async () => {
             state: formModel.value.state ? 'active' : 'disabled'
         }
 
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        const data = await res.json()
-
-        if (data.code === 0) {
-            message.success(data.msg || t('form.saveChanges') + ' Success')
-            emit('refresh')
-            handleClose()
-        } else {
-            message.error(data.msg || t('common.action') + ' Failed')
-        }
+        await portalOrganizationService.saveLegacyAgent(payload, props.type)
+        message.success(t('form.saveChanges') + ' Success')
+        emit('refresh')
+        handleClose()
     } catch (e) {
         // Validation error or Network error
         if (e instanceof Error) {

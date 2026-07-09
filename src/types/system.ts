@@ -11,7 +11,7 @@ export type Permission =
     | 'reports:daily'
     | 'reports:bet'
     | 'system'
-    | 'system:job-levels'
+    | 'system:roles'
 
 // Job Level interface
 export interface JobLevel {

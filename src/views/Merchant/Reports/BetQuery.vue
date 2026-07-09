@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, computed, h } from 'vue'
 import { NDataTable, NButton, NCard, NInput, NTag, NSpace, NIcon } from 'naive-ui'
 import { SearchRound, RefreshRound } from '@vicons/material'
@@ -9,20 +10,10 @@ import JsonViewer from '../../../components/Common/JsonViewer.vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionStorage } from '@vueuse/core'
 import { format } from 'date-fns'
+import { portalReportService } from '../../../services/portal/reports'
+import type { BetLog } from '../../../services/portal/reports'
 
 const { t } = useI18n()
-
-interface BetLog {
-    id: string
-    created_at: string
-    player_id: string
-    game_name: string
-    bet: number
-    win: number
-    currency: string
-    status: 'win' | 'loss' | 'refund'
-    detail?: any
-}
 
 const loading = ref(false)
 const list = ref<BetLog[]>([])
@@ -108,7 +99,7 @@ const columns = computed<DataTableColumns<BetLog>>(() => [
             size: 'tiny', 
             quaternary: true,
             onClick: () => openDetail(row)
-        }, { default: () => '🔍' })
+        }, { default: () => '詳情' })
     }
 ])
 
@@ -135,18 +126,13 @@ const fetchData = async () => {
             endStr = format(dateRange.value[1], 'yyyy-MM-dd')
         }
 
-        const res = await fetch('/api/v2/merchant/reports/bet-logs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                date_start: startStr,
-                date_end: endStr,
-                player_id: playerId.value || undefined,
-                round_id: roundId.value || undefined
-            })
+        const data = await portalReportService.listBetLogs({
+            date_start: startStr,
+            date_end: endStr,
+            player_id: playerId.value || undefined,
+            round_id: roundId.value || undefined
         })
-        const data = await res.json()
-        list.value = data.data?.list || []
+        list.value = data.list || []
     } finally {
         loading.value = false
     }
@@ -159,7 +145,7 @@ onMounted(() => fetchData())
     <div class="p-6 space-y-4">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold flex items-center gap-2">
-                <span>🔎</span> {{ t('betQuery.title') }}
+                <span>注單</span> {{ t('betQuery.title') }}
             </h1>
         </div>
 
@@ -218,7 +204,7 @@ onMounted(() => fetchData())
         <!-- Data Table -->
         <n-card>
             <n-data-table 
-                :columns="columns" 
+                :columns="withTableSorters(columns)" 
                 :data="list" 
                 :loading="loading" 
                 :pagination="{ pageSize: 15 }"

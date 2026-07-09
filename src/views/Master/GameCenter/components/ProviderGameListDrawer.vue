@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../../utils/tableSort"
 import { ref, watch, h } from 'vue'
 import { NDrawer, NDrawerContent, NDataTable, NTag, NInput, NSpace, NIcon } from 'naive-ui'
 import { SearchOutlined } from '@vicons/material'
@@ -97,7 +98,7 @@ const columns: DataTableColumns<Game> = [
                 </n-input>
 
                 <n-data-table
-                    :columns="columns"
+                    :columns="withTableSorters(columns)"
                     :data="games.filter(g => g.name.toLowerCase().includes(searchText.toLowerCase()))"
                     :loading="loading"
                     :pagination="{ pageSize: 10 }"

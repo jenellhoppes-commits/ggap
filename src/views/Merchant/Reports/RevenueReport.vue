@@ -1,4 +1,5 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, h } from 'vue'
 import { 
     NCard, NStatistic, NGrid, NGridItem, NDataTable, NButton, useMessage, NDatePicker
@@ -10,6 +11,7 @@ import type { RevenueReportRow } from '../../../types/table'
 import { exportToCSV } from '../../../utils/csvExport'
 import { format } from 'date-fns'
 import { math } from '../../../utils/math'
+import { portalReportService } from '../../../services/portal/reports'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -47,13 +49,9 @@ const fetchData = async () => {
         const startDate = format(start, 'yyyy-MM-dd')
         const endDate = format(end, 'yyyy-MM-dd')
 
-        const res = await fetch(`/api/v2/merchant/reports/daily?startDate=${startDate}&endDate=${endDate}`)
-        const data = await res.json()
-        
-        if (data.code === 0) {
-            items.value = data.data.items
-            summary.value = data.data.summary
-        }
+        const data = await portalReportService.getDailyReport(startDate, endDate)
+        items.value = data.items
+        summary.value = data.summary
     } catch {
         message.error('Failed to load report')
     } finally {
@@ -100,29 +98,24 @@ const handleExportDetails = async () => {
         const startDate = format(start, 'yyyy-MM-dd')
         const endDate = format(end, 'yyyy-MM-dd')
         
-        // Fetch all transactions for the date range (simulated via API)
-        const res = await fetch(`/api/v2/merchant/reports/transactions?startDate=${startDate}&endDate=${endDate}&all=true`)
-        const data = await res.json()
-        
-        if (data.code === 0) {
-            const filename = `Transaction_Details_${startDate}_${endDate}`
-            const headers = {
-                created_at: t('merchantReports.betTime'),
-                player_id: t('merchantReports.player'),
-                game_name: t('merchantReports.game'),
-                bet_amount: t('merchantReports.totalBet'),
-                payout_amount: t('merchantReports.totalPayout'),
-                net_win: t('merchantReports.netWin')
-            }
-            
-            const exportData = data.data.list.map((row: any) => ({
-                ...row,
-                created_at: new Date(row.created_at).toLocaleString()
-            }))
-            
-            exportToCSV(exportData, filename, headers)
-            message.success(t('common.success'))
+        const data = await portalReportService.listTransactions({ startDate, endDate, all: true })
+        const filename = `Transaction_Details_${startDate}_${endDate}`
+        const headers = {
+            created_at: t('merchantReports.betTime'),
+            player_id: t('merchantReports.player'),
+            game_name: t('merchantReports.game'),
+            bet_amount: t('merchantReports.totalBet'),
+            payout_amount: t('merchantReports.totalPayout'),
+            net_win: t('merchantReports.netWin')
         }
+        
+        const exportData = data.list.map((row: any) => ({
+            ...row,
+            created_at: new Date(row.created_at).toLocaleString()
+        }))
+        
+        exportToCSV(exportData, filename, headers)
+        message.success(t('common.success'))
     } catch {
         message.error('Export failed')
     } finally {
@@ -224,7 +217,7 @@ onMounted(fetchData)
     <div class="p-6 space-y-6">
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-bold flex items-center gap-2">
-                <span>📈</span> {{ t('merchantReports.title') }}
+                <span>Report</span> {{ t('merchantReports.title') }}
             </h1>
             <div class="flex items-center gap-3">
                 <n-date-picker 
@@ -234,10 +227,10 @@ onMounted(fetchData)
                     @update:value="fetchData" 
                 />
                 <n-button secondary type="primary" @click="handleExportSummary">
-                    📥 {{ t('merchantReports.exportSummary') }}
+                    {{ t('merchantReports.exportSummary') }}
                 </n-button>
                 <n-button secondary type="info" :loading="exportLoading" @click="handleExportDetails">
-                    📊 {{ t('merchantReports.exportDetails') }}
+                    {{ t('merchantReports.exportDetails') }}
                 </n-button>
             </div>
         </div>
@@ -283,7 +276,7 @@ onMounted(fetchData)
         </n-card>
 
         <n-data-table
-            :columns="columns"
+            :columns="withTableSorters(columns)"
             :data="items"
             :loading="loading"
             :pagination="{ pageSize: 10 }"

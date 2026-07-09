@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { 
-    NModal, NTabs, NTabPane, NForm, NFormItem, 
-    NInput, NButton, NSelect, NInputNumber,
-    useMessage, NDatePicker, NIcon, NSwitch, NCard, NTooltip
+import {
+    NAlert,
+    NButton,
+    NCard,
+    NDatePicker,
+    NForm,
+    NFormItem,
+    NIcon,
+    NInput,
+    NInputNumber,
+    NModal,
+    NSelect,
+    NSwitch,
+    NTabPane,
+    NTabs,
+    NTag,
+    NTooltip,
+    useMessage
 } from 'naive-ui'
-import { SettingsOutlined, InfoOutlined } from '@vicons/material'
+import { InfoOutlined, SettingsOutlined } from '@vicons/material'
 import { useI18n } from 'vue-i18n'
 import type { Provider } from '../../../../types/provider'
 import MaintenanceSettingsModal from './MaintenanceSettingsModal.vue'
+import { adminContentService } from '../../../../services/admin/content'
 
 const props = withDefaults(defineProps<{
     show: boolean
@@ -29,16 +44,25 @@ const message = useMessage()
 const loading = ref(false)
 const showMaintenance = ref(false)
 
-const formModel = ref<Partial<Provider>>({
+const defaultProvider = (): Partial<Provider> => ({
     name: '',
     code: '',
+    status: 'active',
+    type: 'Slot',
     apiConfig: {},
     contract: {
         costPercent: 0,
         expiryDate: Date.now()
     },
+    provider_settlement_currency: 'USDT',
+    provider_wallet_currency: 'USDT',
+    cost_billing_mode: 'GGR',
+    provider_cost_rate: 0.04,
+    negative_ggr_policy: 'carry_forward',
+    cost_rate_version: 'COST-2026.07',
+    cost_rate_effective_at: '2026-07-01T00:00',
     contractConfig: {
-        settlement_currency: 'USD',
+        settlement_currency: 'USDT',
         rules: {
             slot_free_spin: { enabled: false, provider_share: 0 },
             live_tip: { enabled: false, provider_share: 0 },
@@ -47,52 +71,41 @@ const formModel = ref<Partial<Provider>>({
     }
 })
 
-// Deep copy provider data when modal opens
+const formModel = ref<Partial<Provider>>(defaultProvider())
+
 watch(() => props.show, (newVal) => {
-    if (newVal) {
-        if (props.mode === 'create') {
-            // Reset for create
-            formModel.value = {
-                name: '',
-                code: '',
-                status: 'active',
-                type: 'Slot',
-                apiConfig: {},
-                contract: { costPercent: 0, expiryDate: Date.now() },
-                contractConfig: {
-                    settlement_currency: 'USD',
-                    rules: {
-                        slot_free_spin: { enabled: false, provider_share: 0 },
-                        live_tip: { enabled: false, provider_share: 0 },
-                        card_fee: { enabled: false, provider_share: 0 }
-                    }
-                }
-            }
-        } else if (props.provider) {
-            // Edit mode: copy provider
-            formModel.value = JSON.parse(JSON.stringify(props.provider))
-            // Ensure nested objects exist
-            if (!formModel.value.apiConfig) formModel.value.apiConfig = {}
-            if (!formModel.value.contract) formModel.value.contract = { costPercent: 0, expiryDate: Date.now() }
-            if (!formModel.value.contractConfig) {
-                formModel.value.contractConfig = {
-                    settlement_currency: 'USD',
-                    rules: {
-                        slot_free_spin: { enabled: false, provider_share: 0 },
-                        live_tip: { enabled: false, provider_share: 0 },
-                        card_fee: { enabled: false, provider_share: 0 }
-                    }
-                }
-            }
-        }
+    if (!newVal) return
+
+    if (props.mode === 'create') {
+        formModel.value = defaultProvider()
+        return
+    }
+
+    if (props.provider) {
+        formModel.value = JSON.parse(JSON.stringify(props.provider))
+    }
+
+    if (!formModel.value.apiConfig) formModel.value.apiConfig = {}
+    if (!formModel.value.contract) formModel.value.contract = { costPercent: 0, expiryDate: Date.now() }
+    formModel.value.provider_settlement_currency = 'USDT'
+    formModel.value.provider_wallet_currency = 'USDT'
+    formModel.value.cost_billing_mode = 'GGR'
+    formModel.value.provider_cost_rate = formModel.value.provider_cost_rate ?? 0.04
+    formModel.value.negative_ggr_policy = formModel.value.negative_ggr_policy ?? 'carry_forward'
+    formModel.value.cost_rate_version = formModel.value.cost_rate_version || `${formModel.value.code?.toUpperCase() || 'PROVIDER'}-COST-2026.07`
+    formModel.value.cost_rate_effective_at = formModel.value.cost_rate_effective_at || '2026-07-01T00:00'
+    if (!formModel.value.contractConfig) {
+        formModel.value.contractConfig = defaultProvider().contractConfig
     }
 })
 
 const currencyOptions = [
-    { label: 'USD', value: 'USD' },
-    { label: 'EUR', value: 'EUR' },
-    { label: 'CNY', value: 'CNY' },
-    { label: 'TWD', value: 'TWD' }
+    { label: 'USDT', value: 'USDT' }
+]
+
+const negativeGgrOptions = [
+    { label: '保留到下期', value: 'carry_forward' },
+    { label: '清零', value: 'zero_out' }
 ]
 
 const handleClose = () => {
@@ -102,26 +115,13 @@ const handleClose = () => {
 const handleSave = async () => {
     loading.value = true
     try {
-        const url = props.mode === 'create' ? '/api/admin/providers' : '/api/v2/providers/update'
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formModel.value)
-        })
-        
-        if (!response.ok) {
-            const res = await response.json()
-            throw new Error(res.msg || 'API Error')
-        }
-        
-        const res = await response.json()
-        if (res.code !== 0) throw new Error(res.msg)
-
+        await adminContentService.saveProvider(formModel.value, props.mode)
         message.success(props.mode === 'create' ? t('provider.createSuccess') : t('merchantConfig.saveSuccess'))
         handleClose()
         emit('refresh')
-    } catch (e: any) {
-        message.error(e.message || 'Error saving provider config')
+    } catch (error) {
+        const messageText = error instanceof Error ? error.message : 'Error saving provider config'
+        message.error(messageText)
     } finally {
         loading.value = false
     }
@@ -148,78 +148,81 @@ const handleSave = async () => {
         </template>
 
         <n-tabs type="line" animated>
-            <!-- Tab 1: Basic & API Connection -->
             <n-tab-pane name="integration" :tab="t('provider.integration')">
-                <n-form
-                    label-placement="left"
-                    label-width="160"
-                    require-mark-placement="right-hanging"
-                    class="mt-4"
-                >
-                    <!-- Basic Info -->
+                <n-form label-placement="left" label-width="160" require-mark-placement="right-hanging" class="mt-4">
                     <n-form-item :label="t('provider.name')" required>
                         <n-input v-model:value="formModel.name" :placeholder="t('provider.namePlaceholder')" />
                     </n-form-item>
-
                     <n-form-item :label="t('provider.code')" required>
-                        <n-input 
-                            v-model:value="formModel.code" 
-                            :disabled="mode === 'edit'"
-                            :placeholder="t('provider.codePlaceholder')" 
-                        />
+                        <n-input v-model:value="formModel.code" :disabled="mode === 'edit'" :placeholder="t('provider.codePlaceholder')" />
                     </n-form-item>
-
                     <n-form-item :label="t('provider.apiUrl')">
                         <n-input v-model:value="formModel.apiConfig!.apiUrl" placeholder="https://api.provider.com" />
                     </n-form-item>
-
                     <n-form-item :label="t('provider.merchantCode')">
                         <n-input v-model:value="formModel.apiConfig!.merchantCode" />
                     </n-form-item>
-
                     <n-form-item :label="t('provider.secretKey')">
-                         <n-input 
-                            v-model:value="formModel.apiConfig!.secretKey" 
-                            type="password" 
-                            show-password-on="click" 
-                        />
+                        <n-input v-model:value="formModel.apiConfig!.secretKey" type="password" show-password-on="click" />
                     </n-form-item>
                 </n-form>
             </n-tab-pane>
 
-            <!-- Tab 2: Contract & Finance -->
-            <n-tab-pane name="contract" :tab="t('provider.contract')">
-                <n-form
-                    label-placement="left"
-                    label-width="160"
-                    require-mark-placement="right-hanging"
-                    class="mt-4"
-                >
-                    <!-- Settlement Currency -->
-                    <n-form-item :label="t('provider.settlementCurrency')">
-                        <n-select 
-                            v-model:value="formModel.contractConfig!.settlement_currency" 
-                            :options="currencyOptions" 
-                        />
+            <n-tab-pane name="wallet" tab="錢包 / 結算">
+                <n-form label-placement="left" label-width="160" require-mark-placement="right-hanging" class="mt-4">
+                    <n-alert type="info" :show-icon="false" class="mb-4">
+                        Provider 只串 GGAP 單一 USDT 錢包；供應商不需要知道代理、商戶或會員顯示幣別。
+                    </n-alert>
+                    <n-form-item label="Provider 串接錢包">
+                        <n-tag type="success" :bordered="false">GGAP 單一 USDT 錢包</n-tag>
                     </n-form-item>
+                    <n-form-item label="Provider 對帳幣別">
+                        <n-select v-model:value="formModel.provider_settlement_currency" :options="currencyOptions" disabled />
+                    </n-form-item>
+                    <n-form-item label="Provider Wallet 幣別">
+                        <n-select v-model:value="formModel.provider_wallet_currency" :options="currencyOptions" disabled />
+                    </n-form-item>
+                    <n-form-item label="供應商帳務維度">
+                        <n-input value="provider_id + settlement_currency + period" readonly />
+                    </n-form-item>
+                </n-form>
+            </n-tab-pane>
 
-                    <!-- Revenue Share (Base) -->
-                    <n-form-item :label="t('provider.revenueShare')">
-                        <n-input-number 
-                            v-model:value="formModel.apiConfig!.revenueShare" 
-                            :min="0" 
-                            :max="100"
-                        >
+            <n-tab-pane name="cost" tab="成本費率">
+                <n-form label-placement="left" label-width="160" require-mark-placement="right-hanging" class="mt-4">
+                    <n-alert type="warning" :show-icon="false" class="mb-4">
+                        供應商成本費率只屬於平台與供應商之間的成本帳，可作為代理報價參考，但不代表代理與供應商存在直接結算關係。
+                    </n-alert>
+                    <n-form-item label="計費模式">
+                        <n-select v-model:value="formModel.cost_billing_mode" disabled :options="[{ label: 'GGR', value: 'GGR' }]" />
+                    </n-form-item>
+                    <n-form-item label="供應商成本費率">
+                        <n-input-number v-model:value="formModel.provider_cost_rate" :min="0" :max="1" :step="0.001">
                             <template #suffix>%</template>
                         </n-input-number>
                     </n-form-item>
+                    <n-form-item label="負 GGR 處理">
+                        <n-select v-model:value="formModel.negative_ggr_policy" :options="negativeGgrOptions" />
+                    </n-form-item>
+                    <n-form-item label="費率版本">
+                        <n-input v-model:value="formModel.cost_rate_version" placeholder="例如 PG-COST-2026.07" />
+                    </n-form-item>
+                    <n-form-item label="生效時間">
+                        <n-input v-model:value="formModel.cost_rate_effective_at" placeholder="YYYY-MM-DDTHH:mm" />
+                    </n-form-item>
+                </n-form>
+            </n-tab-pane>
 
-                    <!-- Advanced Rules -->
+            <n-tab-pane name="rules" :tab="t('provider.contract')">
+                <n-form label-placement="left" label-width="160" require-mark-placement="right-hanging" class="mt-4">
+                    <n-form-item :label="t('provider.settlementCurrency')">
+                        <n-select v-model:value="formModel.contractConfig!.settlement_currency" :options="currencyOptions" disabled />
+                    </n-form-item>
+
                     <n-card :title="t('provider.advancedRules')" size="small" class="mt-4 bg-gray-50 border-gray-200">
-                        <!-- Slot Free Spin -->
-                        <div class="mb-4 pb-4 border-b border-gray-200">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="font-medium flex items-center gap-2">
+                        <div class="mb-4 border-b border-gray-200 pb-4">
+                            <div class="mb-2 flex items-center justify-between">
+                                <div class="flex items-center gap-2 font-medium">
                                     {{ t('provider.rules.slotFreeSpin') }}
                                     <n-tooltip trigger="hover">
                                         <template #trigger><n-icon :component="InfoOutlined" class="text-gray-400 cursor-pointer" /></template>
@@ -228,77 +231,66 @@ const handleSave = async () => {
                                 </div>
                                 <n-switch v-model:value="formModel.contractConfig!.rules.slot_free_spin.enabled" />
                             </div>
-                            <div v-if="formModel.contractConfig!.rules.slot_free_spin.enabled" class="flex gap-4 items-center pl-6">
-                                <n-form-item :label="t('provider.rules.providerShare')" :show-label="true" label-placement="left" class="mb-0">
+                            <div v-if="formModel.contractConfig!.rules.slot_free_spin.enabled" class="flex items-center gap-4 pl-6">
+                                <n-form-item :label="t('provider.rules.providerShare')" label-placement="left" class="mb-0">
                                     <n-input-number v-model:value="formModel.contractConfig!.rules.slot_free_spin.provider_share" :min="0" :max="100" size="small">
                                         <template #suffix>%</template>
                                     </n-input-number>
                                 </n-form-item>
-                                <div class="text-gray-500 text-sm">
-                                    {{ t('provider.rules.aggregatorShare') }}: 
+                                <div class="text-sm text-gray-500">
+                                    {{ t('provider.rules.aggregatorShare') }}:
                                     <span class="font-bold text-primary">{{ 100 - (formModel.contractConfig?.rules.slot_free_spin.provider_share || 0) }}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Live Tip -->
-                        <div class="mb-4 pb-4 border-b border-gray-200">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="font-medium flex items-center gap-2">
-                                    {{ t('provider.rules.liveTip') }}
-                                </div>
+                        <div class="mb-4 border-b border-gray-200 pb-4">
+                            <div class="mb-2 flex items-center justify-between">
+                                <div class="font-medium">{{ t('provider.rules.liveTip') }}</div>
                                 <n-switch v-model:value="formModel.contractConfig!.rules.live_tip.enabled" />
                             </div>
-                            <div v-if="formModel.contractConfig!.rules.live_tip.enabled" class="flex gap-4 items-center pl-6">
-                                <n-form-item :label="t('provider.rules.providerShare')" :show-label="true" label-placement="left" class="mb-0">
+                            <div v-if="formModel.contractConfig!.rules.live_tip.enabled" class="flex items-center gap-4 pl-6">
+                                <n-form-item :label="t('provider.rules.providerShare')" label-placement="left" class="mb-0">
                                     <n-input-number v-model:value="formModel.contractConfig!.rules.live_tip.provider_share" :min="0" :max="100" size="small">
                                         <template #suffix>%</template>
                                     </n-input-number>
                                 </n-form-item>
-                                <div class="text-gray-500 text-sm">
-                                    {{ t('provider.rules.aggregatorShare') }}: 
+                                <div class="text-sm text-gray-500">
+                                    {{ t('provider.rules.aggregatorShare') }}:
                                     <span class="font-bold text-primary">{{ 100 - (formModel.contractConfig?.rules.live_tip.provider_share || 0) }}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Card Fee -->
                         <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="font-medium flex items-center gap-2">
-                                    {{ t('provider.rules.cardFee') }}
-                                </div>
+                            <div class="mb-2 flex items-center justify-between">
+                                <div class="font-medium">{{ t('provider.rules.cardFee') }}</div>
                                 <n-switch v-model:value="formModel.contractConfig!.rules.card_fee.enabled" />
                             </div>
-                            <div v-if="formModel.contractConfig!.rules.card_fee.enabled" class="flex gap-4 items-center pl-6">
-                                <n-form-item :label="t('provider.rules.providerShare')" :show-label="true" label-placement="left" class="mb-0">
+                            <div v-if="formModel.contractConfig!.rules.card_fee.enabled" class="flex items-center gap-4 pl-6">
+                                <n-form-item :label="t('provider.rules.providerShare')" label-placement="left" class="mb-0">
                                     <n-input-number v-model:value="formModel.contractConfig!.rules.card_fee.provider_share" :min="0" :max="100" size="small">
                                         <template #suffix>%</template>
                                     </n-input-number>
                                 </n-form-item>
-                                <div class="text-gray-500 text-sm">
-                                    {{ t('provider.rules.aggregatorShare') }}: 
+                                <div class="text-sm text-gray-500">
+                                    {{ t('provider.rules.aggregatorShare') }}:
                                     <span class="font-bold text-primary">{{ 100 - (formModel.contractConfig?.rules.card_fee.provider_share || 0) }}%</span>
                                 </div>
                             </div>
                         </div>
                     </n-card>
 
-                    <!-- Expiry Date (Existing) -->
                     <n-form-item :label="t('provider.expiryDate')" class="mt-4">
-                        <n-date-picker 
-                            v-model:value="formModel.contract!.expiryDate as number" 
-                            type="date"
-                            class="w-full"
-                        />
+                        <n-date-picker v-model:value="formModel.contract!.expiryDate as number" type="date" class="w-full" />
                     </n-form-item>
                 </n-form>
             </n-tab-pane>
         </n-tabs>
 
-        <div class="flex justify-end gap-3 mt-6 border-t border-gray-700 pt-4">
-            <n-button @click="handleClose" :disabled="loading">{{ t('common.cancel') }}</n-button>
-            <n-button type="primary" @click="handleSave" :loading="loading">{{ t('common.save') }}</n-button>
+        <div class="mt-6 flex justify-end gap-3 border-t border-gray-700 pt-4">
+            <n-button :disabled="loading" @click="handleClose">{{ t('common.cancel') }}</n-button>
+            <n-button type="primary" :loading="loading" @click="handleSave">{{ t('common.save') }}</n-button>
         </div>
 
         <maintenance-settings-modal

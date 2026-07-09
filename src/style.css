@@ -12,3 +12,63 @@
 .fade-leave-to {
   opacity: 0;
 }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3f #111217;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111217;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3f;
+  border: 1px solid #111217;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #51515a;
+}
+
+.master-sider .n-layout-sider-scroll-container,
+.master-menu {
+  scrollbar-width: thin;
+  scrollbar-color: #323238 #0f1014;
+}
+
+.n-scrollbar-rail {
+  width: 6px !important;
+  padding: 0 !important;
+}
+
+.n-scrollbar-rail--vertical {
+  right: 2px !important;
+}
+
+.n-scrollbar-rail__scrollbar {
+  width: 4px !important;
+  border-radius: 999px !important;
+  background-color: rgba(62, 62, 70, 0.76) !important;
+}
+
+.n-scrollbar-rail__scrollbar:hover {
+  background-color: rgba(82, 82, 92, 0.92) !important;
+}
+
+.master-menu.n-menu--collapsed .n-menu-item-content-header,
+.master-menu.n-menu--collapsed .n-menu-item-content__arrow {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+.master-menu.n-menu--collapsed .n-menu-item-content {
+  justify-content: center;
+}

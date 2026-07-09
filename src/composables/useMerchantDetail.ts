@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useMessage } from 'naive-ui'
 import type { MerchantDetail } from '../types/merchant'
+import { legacyService } from '../services/legacy'
 
 export function useMerchantDetail() {
     const message = useMessage()
@@ -13,13 +14,7 @@ export function useMerchantDetail() {
         loading.value = true
         error.value = null
         try {
-            const response = await fetch(`/api/v2/agent/${id}`)
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
-
-            const res = await response.json()
-            if (res.code !== 0) throw new Error(res.msg || 'Unknown API Error')
-
-            formModel.value = res.data
+            formModel.value = await legacyService.getMerchantDetail(id)
         } catch (err: unknown) {
             console.error('Fetch Merchant Detail Error:', err)
             const errorMessage = err instanceof Error ? err.message : 'Failed to load merchant details'
@@ -35,19 +30,7 @@ export function useMerchantDetail() {
 
         saving.value = true
         try {
-            const response = await fetch('/api/v2/agent/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formModel.value)
-            })
-
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
-
-            const res = await response.json()
-            if (res.code !== 0) throw new Error(res.msg || 'Update failed')
-
+            await legacyService.updateMerchantDetail(formModel.value)
             message.success('Merchant configuration updated successfully')
         } catch (err: unknown) {
             console.error('Update Merchant Error:', err)

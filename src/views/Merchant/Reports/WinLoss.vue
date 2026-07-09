@@ -1,20 +1,16 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, computed, h } from 'vue'
 import { NCard, NDataTable, NDatePicker, NSpace, NButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { portalReportService } from '../../../services/portal/reports'
+import type { WinLossRow } from '../../../services/portal/reports'
 
 import type { DataTableColumns } from 'naive-ui'
 
 const { t } = useI18n()
 
-interface BetLog {
-    id: string
-    time: string
-    game_name: string
-    bet: number
-    win: number
-    status: 'win' | 'loss'
-}
+type BetLog = WinLossRow
 
 const loading = ref(false)
 const list = ref<BetLog[]>([])
@@ -54,16 +50,11 @@ const columns = computed<DataTableColumns<BetLog>>(() => [
 const fetchData = async () => {
     loading.value = true
     try {
-        const res = await fetch('/api/v2/agent/report/win-loss', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                date_start: dateRange.value?.[0],
-                date_end: dateRange.value?.[1]
-            })
+        const data = await portalReportService.getWinLossReport({
+            date_start: dateRange.value?.[0],
+            date_end: dateRange.value?.[1]
         })
-        const data = await res.json()
-        list.value = data.data.list
+        list.value = data.list
     } finally {
         loading.value = false
     }
@@ -84,7 +75,7 @@ onMounted(() => fetchData())
 
         <n-card>
             <n-data-table 
-                :columns="columns" 
+                :columns="withTableSorters(columns)" 
                 :data="list" 
                 :loading="loading" 
                 :pagination="{ pageSize: 10 }"

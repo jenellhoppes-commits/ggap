@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, computed, h, reactive } from 'vue'
 import { 
     NCard, NDataTable, NTag, NButton, useMessage, NSpace, NSwitch, 
@@ -10,6 +11,7 @@ import {
     SearchOutlined 
 } from '@vicons/material'
 import type { Agent } from '../../../types/agent'
+import { portalOrganizationService } from '../../../services/portal/organization'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -35,7 +37,7 @@ const showTransferModal = ref(false)
 const transferForm = reactive({
     targetId: 0,
     targetName: '',
-    currentBalance: 0, // Agent's balance
+    currentBalance: 0, // Agent balance
     amount: 0,
     type: 'deposit' as 'deposit' | 'withdraw' // deposit = transfer into agent
 })
@@ -131,11 +133,8 @@ const columns = computed(() => [
 const fetchData = async () => {
     loading.value = true
     try {
-        const res = await fetch('/api/v2/agent/sub-agents')
-        const data = await res.json()
-        if (data.code === 0) {
-            list.value = data.data.list
-        }
+        const data = await portalOrganizationService.listSubAgents()
+        list.value = data.list
     } finally {
         loading.value = false
     }
@@ -146,10 +145,7 @@ const handleStatusChange = async (row: Agent, active: boolean) => {
     const oldState = row.state
     row.state = active ? 'active' : 'disabled'
     try {
-        await fetch(`/api/v2/merchant/agents/${row.id}`, {
-            method: 'PUT',
-            body: JSON.stringify({ state: row.state })
-        })
+        await portalOrganizationService.updateAgentState(row.id, row.state)
         message.success(t('common.success'))
     } catch (e) {
         row.state = oldState
@@ -192,29 +188,20 @@ const submitAgent = async () => {
     
     submitting.value = true
     try {
-        const url = agentModalMode.value === 'create' 
-            ? '/api/v2/merchant/agents' 
-            : `/api/v2/merchant/agents/${agentForm.id}`
-        
-        const method = agentModalMode.value === 'create' ? 'POST' : 'PUT'
-        
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...agentForm,
-                state: agentForm.status ? 'active' : 'disabled'
-            })
-        })
-        
-        const json = await res.json()
-        if (json.code === 0) {
-            message.success(t('common.success'))
-            showAgentModal.value = false
-            fetchData()
-        } else {
-            message.error(json.msg)
+        const payload = {
+            ...agentForm,
+            state: agentForm.status ? 'active' as const : 'disabled' as const
         }
+
+        if (agentModalMode.value === 'create') {
+            await portalOrganizationService.createAgent(payload)
+        } else {
+            await portalOrganizationService.updateAgent(agentForm.id, payload)
+        }
+
+        message.success(t('common.success'))
+        showAgentModal.value = false
+        fetchData()
     } finally {
         submitting.value = false
     }
@@ -237,22 +224,10 @@ const submitTransfer = async () => {
     
     transferring.value = true
     try {
-        const res = await fetch(`/api/v2/merchant/agents/${transferForm.targetId}/transfer`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                amount: transferForm.amount,
-                type: transferForm.type
-            })
-        })
-        const json = await res.json()
-        if (json.code === 0) {
-            message.success(t('common.success'))
-            showTransferModal.value = false
-            fetchData()
-        } else {
-            message.error(json.msg)
-        }
+        await portalOrganizationService.transferToAgent(transferForm.targetId, transferForm.amount, transferForm.type)
+        message.success(t('common.success'))
+        showTransferModal.value = false
+        fetchData()
     } finally {
         transferring.value = false
     }
@@ -282,7 +257,7 @@ onMounted(fetchData)
         <!-- Table -->
         <n-card :bordered="false" class="shadow-sm">
             <n-data-table 
-                :columns="columns" 
+                :columns="withTableSorters(columns)" 
                 :data="list" 
                 :loading="loading" 
                 :single-line="false"

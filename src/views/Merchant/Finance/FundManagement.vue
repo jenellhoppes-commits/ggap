@@ -1,7 +1,7 @@
-<template>
+﻿<template>
     <div class="fund-management p-6">
         <h1 class="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>💰</span> {{ t('merchant.fundRecord.title') }}
+            <span>Fund</span> {{ t('merchant.fundRecord.title') }}
         </h1>
 
         <!-- Top Section: Wallet Info & Actions -->
@@ -38,7 +38,7 @@
         <!-- Fund Records List -->
         <n-card>
             <n-data-table
-                :columns="columns"
+                :columns="withTableSorters(columns)"
                 :data="data"
                 :loading="loading"
                 :pagination="pagination"
@@ -95,6 +95,7 @@
 </template>
 
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -103,13 +104,14 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import type { FundManagementRow } from '../../../types/table'
+import { portalFinanceService } from '../../../services/portal/finance'
 
 const { t } = useI18n()
 const message = useMessage()
 
 // State
 const walletInfo = ref({ balance: 0, credit_limit: 0, currency: 'USD' })
-const data = ref([])
+const data = ref<FundManagementRow[]>([])
 const loading = ref(false)
 const showTopUpModal = ref(false)
 const showCreditModal = ref(false)
@@ -199,17 +201,12 @@ const columns: DataTableColumns<FundManagementRow> = [
 const fetchData = async () => {
     loading.value = true
     try {
-        // Fetch Wallet
-        const walletRes = await fetch('/api/v2/merchant/wallet').then(r => r.json())
-        if (walletRes.code === 0) {
-            walletInfo.value = walletRes.data
-        }
-
-        // Fetch Records
-        const listRes = await fetch('/api/v2/merchant/funds').then(r => r.json())
-        if (listRes.code === 0) {
-            data.value = listRes.data.list
-        }
+        const [wallet, funds] = await Promise.all([
+            portalFinanceService.getWallet(),
+            portalFinanceService.listFunds()
+        ])
+        walletInfo.value = wallet
+        data.value = funds.list as FundManagementRow[]
     } catch (e) {
         message.error('Failed to load data')
     } finally {
@@ -223,8 +220,7 @@ const formatCurrency = (val: number) => val?.toLocaleString() || '0'
 const submitTopUp = async () => {
     submitting.value = true
     try {
-        await new Promise(r => setTimeout(r, 600)) // Mock delay
-        // In real app, call API
+        await portalFinanceService.submitTopUp(topUpAmount.value, '')
         message.success(t('common.submitSuccess'))
         showTopUpModal.value = false
         fetchData()
@@ -237,8 +233,7 @@ const submitTopUp = async () => {
 const submitCredit = async () => {
     submitting.value = true
     try {
-        await new Promise(r => setTimeout(r, 600)) // Mock delay
-        // In real app, call API
+        await portalFinanceService.submitCreditLimitRequest(creditAmount.value, creditReason.value)
         message.success(t('common.submitSuccess'))
         showCreditModal.value = false
         fetchData()

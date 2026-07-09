@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../utils/tableSort"
 import { onMounted, h, ref, type VNode, computed } from 'vue'
 import { 
     NCard, NBreadcrumb, NBreadcrumbItem, NDataTable, 
@@ -174,7 +175,7 @@ const handleRefresh = () => {
         <!-- Table -->
         <n-card size="small">
             <n-data-table
-                :columns="columns"
+                :columns="withTableSorters(columns)"
                 :data="agents"
                 :loading="loading"
                 :pagination="{ pageSize: 15 }"

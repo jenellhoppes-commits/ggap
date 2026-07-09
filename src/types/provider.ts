@@ -13,6 +13,24 @@ export interface Provider {
     };
     type?: string;
     gameCount?: number;
+    provider_settlement_currency?: 'USDT';
+    provider_wallet_currency?: 'USDT';
+    cost_billing_mode?: 'GGR';
+    provider_cost_rate?: number;
+    negative_ggr_policy?: 'carry_forward' | 'zero_out';
+    cost_rate_version?: string;
+    cost_rate_effective_at?: string;
+    cost_rate_history?: Array<{
+        version: string;
+        provider_cost_rate: number;
+        negative_ggr_policy: 'carry_forward' | 'zero_out';
+        effective_at: string;
+        changed_by: string;
+        changed_at: string;
+        remarks?: string;
+    }>;
+    service_status?: 'active' | 'maintenance';
+    integration_status?: 'connected' | 'testing' | 'disabled';
     contract?: {
         costPercent: number;
         expiryDate: number | string;

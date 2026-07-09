@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, h, onMounted, computed, watch } from 'vue'
 import {
   NCard, NDatePicker, NButton, NRadioGroup, NRadioButton,
@@ -14,6 +15,7 @@ import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } f
 import type { FinancialReportItem } from '../../../types/report'
 import { useSessionStorage } from '@vueuse/core'
 import { format } from 'date-fns'
+import { adminReportService } from '../../../services/admin/reports'
 
 // Register ECharts modules
 use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
@@ -41,19 +43,13 @@ const fetchData = async () => {
             endTime = format(filter.value.timeRange[1], 'yyyy-MM-dd')
         }
 
-        const res = await fetch('/api/v2/report/financial', {
-            method: 'POST',
-            body: JSON.stringify({
-                timeRange: filter.value.timeRange, // Keep for backward compat if needed, or remove
-                startTime,
-                endTime,
-                groupBy: filter.value.groupBy
-            })
+        const data = await adminReportService.getFinancialReport({
+            timeRange: filter.value.timeRange,
+            startTime,
+            endTime,
+            groupBy: filter.value.groupBy
         })
-        const data = await res.json()
-        if (data.code === 0) {
-            reportData.value = data.data.list
-        }
+        reportData.value = data.list
     } catch (e) {
         message.error('Failed to load financial report')
     } finally {
@@ -221,7 +217,7 @@ const handleExport = () => {
 
         <!-- Data Table -->
         <n-data-table
-            :columns="columns"
+            :columns="withTableSorters(columns)"
             :data="reportData"
             :loading="loading"
             :pagination="{ pageSize: 20 }"

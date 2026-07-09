@@ -5,6 +5,8 @@ import {
     NInputNumber, NButton, useMessage, NSpin
 } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
+import { adminMerchantService } from '../../../../services/admin/merchants'
+import type { MerchantProviderSubscription } from '../../../../services/admin/merchants'
 
 interface Props {
     show: boolean
@@ -17,17 +19,14 @@ const { t } = useI18n()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const subscriptions = ref<any[]>([])
+const subscriptions = ref<MerchantProviderSubscription[]>([])
 
 // Fetch subscriptions when modal opens
 watch(() => props.show, async (newVal) => {
     if (newVal && props.merchantId) {
         loading.value = true
         try {
-            const res = await fetch(`/api/v2/merchant/${props.merchantId}/providers`).then(r => r.json())
-            if (res.code === 0) {
-                subscriptions.value = res.data
-            }
+            subscriptions.value = await adminMerchantService.listProviderSubscriptions(props.merchantId)
         } catch (e) {
             message.error(t('subscription.loadFailed'))
         } finally {
@@ -40,18 +39,9 @@ const handleSave = async () => {
     if (!props.merchantId) return
     saving.value = true
     try {
-        const res = await fetch(`/api/v2/merchant/${props.merchantId}/providers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(subscriptions.value)
-        }).then(r => r.json())
-
-        if (res.code === 0) {
-            message.success(t('subscription.saveSuccess'))
-            emit('update:show', false)
-        } else {
-            message.error(res.msg || 'Save failed')
-        }
+        await adminMerchantService.saveProviderSubscriptions(props.merchantId, subscriptions.value)
+        message.success(t('subscription.saveSuccess'))
+        emit('update:show', false)
     } catch (e) {
         message.error(t('subscription.saveFailed'))
     } finally {

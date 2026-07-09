@@ -2,6 +2,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import type { FormInst, FormRules } from 'naive-ui'
+import { legacyService } from '../services/legacy'
 
 export function useMerchantCreate() {
     const router = useRouter()
@@ -58,24 +59,7 @@ export function useMerchantCreate() {
             if (!errors) {
                 loading.value = true
                 try {
-                    const res = await fetch('/api/v2/agent/management/agents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formModel)
-                    })
-
-                    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`)
-
-                    const data = await res.json()
-                    if (data.code !== 0) {
-                        // Handle specific business errors
-                        if (data.code === 409) {
-                            message.error('Site Code already exists. Please choose another one.')
-                            return
-                        }
-                        throw new Error(data.msg || 'Creation failed')
-                    }
-
+                    await legacyService.createMerchant(formModel)
                     message.success('Merchant Created Successfully')
                     router.push('/admin/merchant/list')
                 } catch (err: unknown) {

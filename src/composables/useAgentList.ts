@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useMessage } from 'naive-ui'
 import type { Agent } from '../types/agent'
+import { portalOrganizationService } from '../services/portal/organization'
 
 export interface BreadcrumbItem {
     label: string;
@@ -21,18 +22,8 @@ export function useAgentList() {
     const fetchAgents = async (parentId: number | null = null, currentLevel: number = 0) => {
         loading.value = true
         try {
-            // Build query params
-            const params = new URLSearchParams()
-            if (parentId) params.append('parent_id', String(parentId))
-            params.append('level', String(currentLevel))
-
-            const res = await fetch(`/api/v2/agents?${params.toString()}`)
-            const data = await res.json()
-            if (data.code === 0) {
-                agents.value = data.data.list
-            } else {
-                message.error(data.msg || 'Failed to fetch agents')
-            }
+            const data = await portalOrganizationService.listAgents({ parent_id: parentId, level: currentLevel })
+            agents.value = data.list
         } catch (e) {
             message.error('Network Error')
         } finally {

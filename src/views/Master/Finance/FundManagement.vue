@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { withTableSorters } from "../../../utils/tableSort"
 import { ref, reactive, onMounted, h, computed } from 'vue'
 import { 
     NCard, NSpace, NInput, NSelect, NButton, NDataTable, NTag,
@@ -8,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import type { DataTableColumns } from 'naive-ui'
 import type { FundRecord } from '../../../types/finance'
 import { SearchOutlined, PlusOutlined, CheckCircleOutlined, CancelOutlined } from '@vicons/material'
+import { adminFinanceService } from '../../../services/admin/finance'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -66,16 +68,12 @@ const merchantOptions = [
 const fetchList = async () => {
     loading.value = true
     try {
-        const query = new URLSearchParams()
-        if (searchParams.type !== 'all') query.append('type', searchParams.type)
-        if (searchParams.status !== 'all') query.append('status', searchParams.status)
-        if (searchParams.merchantName) query.append('merchant_name', searchParams.merchantName)
-        
-        const res = await fetch(`/api/admin/funds?${query.toString()}`)
-        const data = await res.json()
-        if (data.code === 0) {
-            list.value = data.data.list
-        }
+        const data = await adminFinanceService.listFunds({
+            type: searchParams.type !== 'all' ? searchParams.type : undefined,
+            status: searchParams.status !== 'all' ? searchParams.status : undefined,
+            merchant_name: searchParams.merchantName || undefined
+        })
+        list.value = data.list
     } catch (e) {
         message.error(t('common.failed'))
     } finally {
@@ -94,22 +92,13 @@ const submitReview = async () => {
     if (!currentRecord.value) return
     reviewing.value = true
     try {
-        const res = await fetch(`/api/admin/funds/${currentRecord.value.id}/review`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: reviewAction.value,
-                reason: reviewReason.value
-            })
+        await adminFinanceService.reviewFund(currentRecord.value.id, {
+            action: reviewAction.value,
+            reason: reviewReason.value
         })
-        const data = await res.json()
-        if (data.code === 0) {
-            message.success(t('common.success'))
-            showReview.value = false
-            fetchList()
-        } else {
-            message.error(data.msg)
-        }
+        message.success(t('common.success'))
+        showReview.value = false
+        fetchList()
     } catch (e) {
         message.error(t('common.failed'))
     } finally {
@@ -130,29 +119,19 @@ const submitManual = async () => {
 
         const payload = {
             merchant_id: manualForm.merchant_id_select,
-            merchant_name: mName,
-            type: 'manual-adjust',
+            merchant_name: mName || 'Unknown',
+            type: 'manual-adjust' as const,
             amount: manualForm.amount,
             reason: manualForm.reason
         }
 
-        const res = await fetch(`/api/admin/funds/adjust`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        const data = await res.json()
-        if (data.code === 0) {
-            message.success(t('common.success'))
-            showManual.value = false
-            fetchList()
-            // Reset form
-            manualForm.merchant_id_select = null
-            manualForm.amount = 0
-            manualForm.reason = ''
-        } else {
-            message.error(data.msg)
-        }
+        await adminFinanceService.manualAdjust(payload)
+        message.success(t('common.success'))
+        showManual.value = false
+        fetchList()
+        manualForm.merchant_id_select = null
+        manualForm.amount = 0
+        manualForm.reason = ''
     } catch (e) {
         message.error(t('common.failed'))
     } finally {
@@ -254,7 +233,7 @@ onMounted(() => {
 
                 <!-- Table -->
                 <NDataTable
-                    :columns="columns"
+                    :columns="withTableSorters(columns)"
                     :data="list"
                     :loading="loading"
                     :pagination="{ pageSize: 10 }"

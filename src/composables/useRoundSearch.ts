@@ -3,6 +3,7 @@ import { useMessage } from 'naive-ui'
 import { useSessionStorage } from '@vueuse/core'
 import { format } from 'date-fns'
 import type { BetLog } from '../types/report'
+import { legacyService } from '../services/legacy'
 
 export function useRoundSearch() {
     const message = useMessage()
@@ -34,18 +35,8 @@ export function useRoundSearch() {
                 delete payload.timeRange
             }
 
-            const res = await fetch('/api/v2/report/bet-logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-
-            const data = await res.json()
-            if (data.code === 0) {
-                logs.value = data.data.list
-            } else {
-                message.error(data.msg || 'Query failed')
-            }
+            const data = await legacyService.queryBetLogs(payload)
+            logs.value = data.list
         } catch (e) {
             message.error('Network Error')
         } finally {
