@@ -190,22 +190,6 @@ watchEffect(() => {
                     </div>
                 </template>
 
-                <div class="mb-5 border border-[#2f3138] bg-[#202127] p-3">
-                    <div class="mb-3 text-xs text-gray-400">登入入口</div>
-                    <n-space :size="8">
-                        <n-button
-                            v-for="portal in portalOptions"
-                            :key="`${portal}-form-entry`"
-                            size="small"
-                            :type="selectedPortal === portal ? 'primary' : 'default'"
-                            secondary
-                            @click="goPortalLogin(portal)"
-                        >
-                            {{ portalTitleMap[portal] }}
-                        </n-button>
-                    </n-space>
-                </div>
-
                 <n-radio-group v-if="!isPortalLocked" v-model:value="selectedPortal" class="mb-5">
                     <n-radio-button value="admin">管理者</n-radio-button>
                     <n-radio-button value="agent">代理</n-radio-button>
