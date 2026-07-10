@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { ApiRequestError, apiClient } from '../services/apiClient'
+import { shouldUseDemoData } from '../config/runtime'
 
 export type Portal = 'admin' | 'agent' | 'merchant'
 export type UserRole = 'MASTER' | 'AGENT' | 'MERCHANT'
@@ -53,6 +54,78 @@ const roleDataScopeMap: Record<UserRole, DataScope> = {
     MERCHANT: 'merchant_self'
 }
 
+const createDemoLoginResponse = (username: string, password: string, expectedPortal?: Portal): LoginApiResponse => {
+    const rejectWrongPortal = (accountPortal: Portal) => {
+        if (!expectedPortal || expectedPortal === accountPortal) return null
+        return {
+            success: false,
+            message: '此帳號不可登入目前入口，請切換正確後台。',
+            token: '',
+            role: accountPortal === 'admin' ? 'MASTER' : accountPortal === 'agent' ? 'AGENT' : 'MERCHANT'
+        } satisfies LoginApiResponse
+    }
+
+    if (username === 'admin' && password === 'admin123') {
+        const wrongPortal = rejectWrongPortal('admin')
+        if (wrongPortal) return wrongPortal
+
+        return {
+            success: true,
+            token: `mock-master-token-${Date.now()}`,
+            id: 'USR-MASTER',
+            role: 'MASTER',
+            portal: 'admin',
+            data_scope: 'global',
+            name: 'Super Admin',
+            code: null
+        }
+    }
+
+    if (username === 'agent' && password === 'agent123') {
+        const wrongPortal = rejectWrongPortal('agent')
+        if (wrongPortal) return wrongPortal
+
+        return {
+            success: true,
+            token: `mock-agent-token-${Date.now()}`,
+            id: 'USR-AGENT-L1',
+            role: 'AGENT',
+            portal: 'agent',
+            data_scope: 'agent_tree',
+            name: 'SEA Master Agent',
+            agent_id: 'AGT-SEA-001',
+            agent_level: 1,
+            code: 'AGT-SEA-001'
+        }
+    }
+
+    if (username === 'merchant' && password === '123456') {
+        const wrongPortal = rejectWrongPortal('merchant')
+        if (wrongPortal) return wrongPortal
+
+        return {
+            success: true,
+            token: `mock-merchant-token-${Date.now()}`,
+            id: 'USR-MERCHANT',
+            role: 'MERCHANT',
+            portal: 'merchant',
+            data_scope: 'merchant_self',
+            name: 'Golden Dragon',
+            merchant_id: 'OP-1007',
+            merchant_code: 'OP-1007',
+            agent_id: 'AGT-SEA-001',
+            code: 'OP-1007'
+        }
+    }
+
+    return {
+        success: false,
+        message: '帳號或密碼錯誤',
+        token: '',
+        role: expectedPortal === 'agent' ? 'AGENT' : expectedPortal === 'merchant' ? 'MERCHANT' : 'MASTER'
+    }
+}
+
 export const defaultPathByPortal: Record<Portal, string> = {
     admin: '/admin/dashboard',
     agent: '/agent/dashboard',
@@ -79,10 +152,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     const login = async (username: string, password: string, expectedPortal?: Portal): Promise<LoginResult> => {
         try {
-            const data = await apiClient.rawRequest<LoginApiResponse>('/api/login', {
-                method: 'POST',
-                body: JSON.stringify({ username, password, portal: expectedPortal })
-            })
+            const data = shouldUseDemoData()
+                ? createDemoLoginResponse(username, password, expectedPortal)
+                : await apiClient.rawRequest<LoginApiResponse>('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password, portal: expectedPortal })
+                })
 
             if (!data.success) {
                 return { success: false, message: data.message || '登入失敗，請確認帳號與密碼。' }
