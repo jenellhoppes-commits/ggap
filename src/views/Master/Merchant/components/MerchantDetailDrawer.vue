@@ -19,6 +19,8 @@ import {
 import { ContentCopyRound } from '@vicons/material'
 import type { Merchant, MerchantStatus } from '../../../../types/merchant'
 import MoneyText from '../../../../components/Common/MoneyText.vue'
+import { formatDisplayAmount } from '../../../../utils/format'
+import { makeMerchantLimitGroups } from '../../../../mocks/gameLimits'
 
 const props = defineProps<{
   show: boolean
@@ -54,6 +56,7 @@ const serviceFeeRate = computed(() => props.merchant?.service_fee_rate ?? props.
 const quoteRates = computed(() => props.merchant?.merchant_quote_rates || [])
 const agentName = computed(() => props.merchant?.agent_name || props.merchant?.parent_agent || '平台直營代理')
 const playerWalletKey = computed(() => `${props.merchant?.display_id || 'merchant_id'} + merchant_player_id + ${displayCurrency.value}`)
+const merchantLimitGroups = computed(() => makeMerchantLimitGroups(displayCurrencies.value, displayCurrency.value))
 
 const formatDateTime = (value?: string) => {
   if (!value) return '-'
@@ -211,6 +214,27 @@ const runAction = (action: string) => {
               <n-descriptions-item label="停用遊戲">{{ merchant.disabled_game_count || 0 }}</n-descriptions-item>
               <n-descriptions-item label="預設遊戲包">{{ merchant.game_package || '-' }}</n-descriptions-item>
             </n-descriptions>
+          </n-tab-pane>
+
+          <n-tab-pane name="limits" tab="遊戲限額">
+            <n-alert type="info" :show-icon="false" class="mb-4">
+              商戶只可使用所屬代理已開放的單槍群組；特殊會員可在會員層再覆寫更高區間，交易時會保存 Session 限額快照。
+            </n-alert>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div v-for="limit in merchantLimitGroups" :key="`${limit.provider_name}-${limit.limit_group_name}-${limit.display_currency}`" class="rounded border border-white/10 bg-[#202026] p-4">
+                <div class="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <div class="font-semibold">{{ limit.limit_group_name }}</div>
+                    <div class="text-xs text-gray-500">{{ limit.provider_name }} / {{ limit.game_type }}</div>
+                  </div>
+                  <n-tag type="success" size="small" :bordered="false">{{ limit.status }}</n-tag>
+                </div>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between gap-3"><span class="text-gray-500">投注區間</span><span>{{ formatDisplayAmount(limit.min_bet, limit.display_currency) }} - {{ formatDisplayAmount(limit.max_bet, limit.display_currency) }}</span></div>
+                  <div class="flex justify-between gap-3"><span class="text-gray-500">來源</span><span>{{ limit.source }}</span></div>
+                </div>
+              </div>
+            </div>
           </n-tab-pane>
 
           <n-tab-pane name="agent" tab="代理歸屬">

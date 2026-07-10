@@ -2,6 +2,7 @@
 import { h } from 'vue'
 import { NButton, NCard, NDataTable, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
+import { withTableSorters } from '../../../utils/tableSort'
 
 interface CallbackLogRow {
   callback_id: string
@@ -22,30 +23,30 @@ const rows: CallbackLogRow[] = [
 ]
 
 const columns: DataTableColumns<CallbackLogRow> = [
-  { title: 'Callback ID', key: 'callback_id', sorter: 'default', render: (row) => h('span', { class: 'font-mono text-cyan-300' }, row.callback_id) },
-  { title: '事件', key: 'event_type', width: 100, sorter: 'default' },
-  { title: 'Round ID', key: 'round_id', sorter: 'default', render: (row) => h('span', { class: 'font-mono' }, row.round_id) },
-  { title: '會員 ID', key: 'player_id', sorter: 'default' },
-  { title: 'URL', key: 'url', ellipsis: { tooltip: true } },
-  { title: 'HTTP', key: 'http_status', width: 90, align: 'right', sorter: (a, b) => a.http_status - b.http_status },
-  { title: '重試', key: 'retry_count', width: 90, align: 'right', sorter: (a, b) => a.retry_count - b.retry_count },
+  { title: 'Callback ID', key: 'callback_id', width: 130, render: row => h('span', { class: 'font-mono text-cyan-300' }, row.callback_id) },
+  { title: '事件', key: 'event_type', width: 100 },
+  { title: 'Round ID', key: 'round_id', width: 150, render: row => h('span', { class: 'font-mono' }, row.round_id) },
+  { title: '會員 ID', key: 'player_id', width: 130, render: row => h('span', { class: 'font-mono' }, row.player_id) },
+  { title: 'URL', key: 'url', minWidth: 250, ellipsis: { tooltip: true } },
+  { title: 'HTTP', key: 'http_status', width: 90, align: 'right' },
+  { title: '重試', key: 'retry_count', width: 90, align: 'right' },
   {
     title: '狀態',
     key: 'status',
     width: 110,
-    sorter: 'default',
-    render: (row) => {
+    render: row => {
       const typeMap = { success: 'success', failed: 'error', retrying: 'warning' } as const
       const labelMap = { success: '成功', failed: '失敗', retrying: '重試中' }
       return h(NTag, { type: typeMap[row.status], size: 'small', bordered: false }, { default: () => labelMap[row.status] })
     }
   },
-  { title: '最後送出', key: 'last_sent_at', width: 170, sorter: 'default' },
+  { title: '最後送出', key: 'last_sent_at', width: 170 },
   {
     title: '操作',
     key: 'actions',
-    width: 150,
-    render: (row) => h(NButton, { size: 'small', secondary: true, disabled: row.status === 'success' }, { default: () => '重送' })
+    width: 140,
+    fixed: 'right',
+    render: row => h(NButton, { size: 'small', secondary: true, disabled: row.status === 'success' }, { default: () => '重送' })
   }
 ]
 </script>
@@ -54,11 +55,11 @@ const columns: DataTableColumns<CallbackLogRow> = [
   <div class="space-y-6">
     <header>
       <h1 class="text-2xl font-bold text-white">Callback 紀錄</h1>
-      <p class="mt-2 text-sm text-gray-500">商戶追蹤 Callback 發送結果、HTTP 狀態與重試紀錄。</p>
+      <p class="mt-2 text-sm text-gray-500">商戶追蹤 Callback 發送結果、HTTP 狀態、重試次數與最後送出時間。</p>
     </header>
 
     <n-card>
-      <n-data-table :columns="columns" :data="rows" :pagination="{ pageSize: 10 }" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="{ pageSize: 10 }" :scroll-x="1220" striped />
     </n-card>
   </div>
 </template>

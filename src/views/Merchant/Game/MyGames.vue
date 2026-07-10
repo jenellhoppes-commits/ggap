@@ -1,267 +1,239 @@
-﻿<script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
-import { ref, onMounted, h, computed } from 'vue'
-import { 
-    NDataTable, NTag, NSelect, useMessage, NAlert, NButton, NSpace, NTooltip
-} from 'naive-ui'
+<script setup lang="ts">
+import { computed, h, onMounted, ref } from 'vue'
+import { NAlert, NButton, NCard, NDataTable, NInput, NSelect, NTag, NTooltip, useMessage } from 'naive-ui'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
-import PageFilterBar from '../../../components/Common/PageFilterBar.vue'
 import StatusSwitch from '../../../components/Common/StatusSwitch.vue'
-import { useI18n } from 'vue-i18n'
 import { portalGameService } from '../../../services/portal/games'
 import type { PortalGame } from '../../../services/portal/games'
+import { withTableSorters } from '../../../utils/tableSort'
 
-const { t } = useI18n()
+interface MerchantGame extends PortalGame {
+  limit_group?: string
+  supported_currencies?: string[]
+  maintenance_rule?: string
+}
+
 const message = useMessage()
 const loading = ref(false)
-
-type MerchantGame = PortalGame
-
-const games = ref<PortalGame[]>([])
+const games = ref<MerchantGame[]>([])
 const searchValue = ref('')
 const typeFilter = ref('all')
 const providerFilter = ref('all')
 const checkedRowKeys = ref<DataTableRowKey[]>([])
-
-const typeOptions = computed(() => [
-    { label: t('merchantGame.allTypes'), value: 'all' },
-    { label: t('merchantGame.slots'), value: 'Slot' },
-    { label: t('merchantGame.liveCasino'), value: 'Live' },
-    { label: t('merchantGame.fishing'), value: 'Fishing' }
-])
-
-const providerOptions = computed(() => {
-    const providers = Array.from(new Set(games.value.map(g => g.provider)))
-    return [
-        { label: t('common.all'), value: 'all' },
-        ...providers.map(p => ({ label: p, value: p }))
-    ]
-})
-
-// Track switch states
 const switchStates = ref<Record<string, boolean>>({})
 
+const limitGroupPool = ['Slot 一般會員', 'Slot VIP 2000-5000', 'Slot VIP 5000-10000', '百家樂一般會員', 'Fishing 一般會員']
+const currencyPool = [['TWD', 'PHP'], ['IDR', 'VND'], ['THB'], ['PHP', 'VND']]
+const maintenancePool = ['無固定維護', '每週二 03:00-04:00', '每月 1 日 02:00-05:00']
+
+const typeOptions = [
+  { label: '所有類型', value: 'all' },
+  { label: 'Slot', value: 'Slot' },
+  { label: 'Live', value: 'Live' },
+  { label: 'Fishing', value: 'Fishing' }
+]
+
+const providerOptions = computed(() => {
+  const providers = Array.from(new Set(games.value.map(g => g.provider)))
+  return [
+    { label: '全部供應商', value: 'all' },
+    ...providers.map(p => ({ label: p, value: p }))
+  ]
+})
+
 const fetchGames = async () => {
-    loading.value = true
-    try {
-        const data = await portalGameService.listGames()
-        games.value = data.list || []
-        games.value.forEach(g => {
-            switchStates.value[g.game_id] = g.merchant_enabled
-        })
-    } catch {
-        message.error(t('merchantGame.loadFailed'))
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  try {
+    const data = await portalGameService.listGames()
+    games.value = (data.list || []).map((game, index) => ({
+      ...game,
+      limit_group: limitGroupPool[index % limitGroupPool.length],
+      supported_currencies: currencyPool[index % currencyPool.length],
+      maintenance_rule: game.admin_status === 'maintenance' ? '平台臨時維護' : maintenancePool[index % maintenancePool.length]
+    }))
+    games.value.forEach(g => {
+      switchStates.value[g.game_id] = g.merchant_enabled
+    })
+  } catch {
+    message.error('遊戲資料載入失敗')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleToggle = async (row: MerchantGame, newVal: boolean) => {
-    if (newVal && !row.master_enabled) {
-        message.warning(t('merchantGame.disabledByPlatform'))
-        return
-    }
-    
-    switchStates.value[row.game_id] = newVal
-    row.merchant_enabled = newVal
-    
-    try {
-        await portalGameService.toggleGame(row.game_id, newVal)
-        message.success(newVal ? t('merchantGame.gameEnabled') : t('merchantGame.gameDisabled'))
-    } catch {
-        switchStates.value[row.game_id] = !newVal
-        row.merchant_enabled = !newVal
-        message.error(t('merchantGame.updateFailed'))
-    }
+  if (newVal && !row.master_enabled) {
+    message.warning('平台已停用的遊戲無法由商戶啟用')
+    return
+  }
+
+  switchStates.value[row.game_id] = newVal
+  row.merchant_enabled = newVal
+
+  try {
+    await portalGameService.toggleGame(row.game_id, newVal)
+    message.success(newVal ? '遊戲已啟用' : '遊戲已停用')
+  } catch {
+    switchStates.value[row.game_id] = !newVal
+    row.merchant_enabled = !newVal
+    message.error('遊戲狀態更新失敗')
+  }
 }
 
 const handleBatchAction = async (enable: boolean) => {
-    const selectedIds = checkedRowKeys.value as string[]
-    if (selectedIds.length === 0) return
+  const selectedIds = checkedRowKeys.value as string[]
+  if (selectedIds.length === 0) return
 
-    loading.value = true
-    try {
-        // Optimistic update
-        selectedIds.forEach(id => {
-            const game = games.value.find(g => g.game_id === id)
-            if (game) {
-                // Skip if platform disabled and trying to enable
-                if (enable && !game.master_enabled) return
-                
-                game.merchant_enabled = enable
-                switchStates.value[id] = enable
-            }
-        })
+  loading.value = true
+  try {
+    selectedIds.forEach(id => {
+      const game = games.value.find(g => g.game_id === id)
+      if (!game || (enable && !game.master_enabled)) return
+      game.merchant_enabled = enable
+      switchStates.value[id] = enable
+    })
 
-        // In real app, call batch API
-        await new Promise(r => setTimeout(r, 800))
-        message.success(t('common.success'))
-        checkedRowKeys.value = []
-    } catch {
-        message.error(t('merchantGame.updateFailed'))
-        await fetchGames() // Revert
-    } finally {
-        loading.value = false
-    }
+    await new Promise(resolve => setTimeout(resolve, 500))
+    message.success('批次更新完成')
+    checkedRowKeys.value = []
+  } catch {
+    message.error('批次更新失敗')
+    await fetchGames()
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleReset = () => {
-    searchValue.value = ''
-    typeFilter.value = 'all'
-    providerFilter.value = 'all'
+  searchValue.value = ''
+  typeFilter.value = 'all'
+  providerFilter.value = 'all'
 }
 
-const filteredGames = computed(() => {
-    return games.value.filter(g => {
-        const matchesSearch = !searchValue.value || 
-            g.name_en.toLowerCase().includes(searchValue.value.toLowerCase()) ||
-            g.game_code.toLowerCase().includes(searchValue.value.toLowerCase())
-        const matchesType = typeFilter.value === 'all' || g.type === typeFilter.value
-        const matchesProvider = providerFilter.value === 'all' || g.provider === providerFilter.value
-        return matchesSearch && matchesType && matchesProvider
-    })
-})
+const filteredGames = computed(() => games.value.filter(g => {
+  const matchesSearch = !searchValue.value ||
+    g.name_en.toLowerCase().includes(searchValue.value.toLowerCase()) ||
+    g.game_code.toLowerCase().includes(searchValue.value.toLowerCase()) ||
+    g.limit_group?.toLowerCase().includes(searchValue.value.toLowerCase())
+  const matchesType = typeFilter.value === 'all' || g.type === typeFilter.value
+  const matchesProvider = providerFilter.value === 'all' || g.provider === providerFilter.value
+  return matchesSearch && matchesType && matchesProvider
+}))
 
 const columns: DataTableColumns<MerchantGame> = [
-    { type: 'selection' },
-    {
-        title: t('merchantGame.game'),
-        key: 'name_en',
-        width: 250,
-        sorter: 'default',
-        render: (row) => h('div', { class: 'flex items-center gap-3' }, [
-            h('img', { 
-                src: row.thumbnail || 'https://placehold.co/60x60?text=Game', 
-                class: 'w-10 h-10 rounded-lg object-cover bg-gray-200',
-                onError: (e: Event) => (e.target as HTMLImageElement).src = 'https://placehold.co/60x60?text=Game'
-            }),
-            h('div', {}, [
-                h('div', { class: 'font-medium text-sm' }, row.name_en),
-                h('div', { class: 'text-xs text-gray-400 font-mono' }, row.game_code)
-            ])
-        ])
-    },
-    {
-        title: t('merchantGame.provider'),
-        key: 'provider',
-        width: 120,
-        sorter: 'default',
-        render: (row) => h(NTag, { size: 'small', bordered: false }, { default: () => row.provider })
-    },
-    {
-        title: t('merchantGame.releaseDate'),
-        key: 'release_date',
-        width: 120,
-        sorter: (row1, row2) => new Date(row1.release_date).getTime() - new Date(row2.release_date).getTime(),
-        render: (row) => h('span', { class: 'font-mono' }, row.release_date ? row.release_date.split('T')[0] : '-')
-    },
-    {
-        title: 'RTP',
-        key: 'rtp',
-        width: 80,
-        sorter: (row1, row2) => row1.rtp - row2.rtp,
-        render: (row) => h('span', { class: 'font-mono text-green-600' }, `${row.rtp}%`)
-    },
-    {
-        title: t('merchantGame.platformStatus'),
-        key: 'admin_status',
-        width: 130,
-        render: (row) => {
-            const type = row.admin_status === 'active' ? 'success' : 
-                         row.admin_status === 'maintenance' ? 'warning' : 'error'
-            const label = row.admin_status === 'active' ? t('merchantGame.available') :
-                          row.admin_status === 'maintenance' ? t('status.maintenance') : t('merchantGame.disabledByAdmin')
-            
-            return h(NTag, { type, size: 'small', bordered: false }, { default: () => label })
+  { type: 'selection' },
+  {
+    title: '遊戲',
+    key: 'name_en',
+    width: 250,
+    render: row => h('div', { class: 'flex items-center gap-3' }, [
+      h('img', {
+        src: row.thumbnail || 'https://placehold.co/60x60?text=Game',
+        class: 'h-10 w-10 rounded object-cover bg-gray-800',
+        onError: (event: Event) => {
+          ;(event.target as HTMLImageElement).src = 'https://placehold.co/60x60?text=Game'
         }
-    },
-    {
-        title: t('merchantGame.myStatus'),
-        key: 'merchant_enabled',
-        width: 140,
-        render: (row) => {
-            const switchComp = h(StatusSwitch, {
-                value: switchStates.value[row.game_id] ?? row.merchant_enabled,
-                disabled: !row.master_enabled,
-                'onUpdate:value': (val: boolean) => {
-                     // Optimistic update
-                    if (row.master_enabled) switchStates.value[row.game_id] = val
-                },
-                onConfirm: (val: boolean) => handleToggle(row, val)
-            }, {
-                checked: () => t('merchantGame.enabled'),
-                unchecked: () => t('merchantGame.disabled')
-            })
-
-            if (!row.master_enabled) {
-                return h(NTooltip, null, {
-                    trigger: () => h('div', { class: 'inline-block cursor-not-allowed opacity-60' }, [switchComp]),
-                    default: () => t('merchantGame.disabledByPlatform')
-                })
-            }
-            
-            return switchComp
-        }
+      }),
+      h('div', {}, [
+        h('div', { class: 'font-medium text-sm' }, row.name_zh || row.name_en),
+        h('div', { class: 'text-xs text-gray-400 font-mono' }, row.game_code)
+      ])
+    ])
+  },
+  { title: '供應商', key: 'provider', width: 120, render: row => h(NTag, { size: 'small', bordered: false }, { default: () => row.provider }) },
+  { title: '類型', key: 'type', width: 100 },
+  { title: 'RTP', key: 'rtp', width: 80, align: 'right', render: row => `${row.rtp}%` },
+  {
+    title: '支援幣別',
+    key: 'supported_currencies',
+    width: 150,
+    render: row => h('div', { class: 'flex flex-wrap gap-1' }, (row.supported_currencies || []).map(currency => h(NTag, { size: 'small', bordered: false }, { default: () => currency })))
+  },
+  { title: '單槍群組', key: 'limit_group', minWidth: 160, ellipsis: { tooltip: true } },
+  { title: '維護狀態', key: 'maintenance_rule', minWidth: 170, ellipsis: { tooltip: true } },
+  {
+    title: '平台狀態',
+    key: 'admin_status',
+    width: 120,
+    render: row => {
+      const type = row.admin_status === 'active' ? 'success' : row.admin_status === 'maintenance' ? 'warning' : 'error'
+      const label = row.admin_status === 'active' ? '可用' : row.admin_status === 'maintenance' ? '維護中' : '平台停用'
+      return h(NTag, { type, size: 'small', bordered: false }, { default: () => label })
     }
+  },
+  {
+    title: '我的狀態',
+    key: 'merchant_enabled',
+    width: 130,
+    render: row => {
+      const switchComp = h(StatusSwitch, {
+        value: switchStates.value[row.game_id] ?? row.merchant_enabled,
+        disabled: !row.master_enabled,
+        'onUpdate:value': (val: boolean) => {
+          if (row.master_enabled) switchStates.value[row.game_id] = val
+        },
+        onConfirm: (val: boolean) => handleToggle(row, val)
+      }, {
+        checked: () => '已啟用',
+        unchecked: () => '已停用'
+      })
+
+      if (!row.master_enabled) {
+        return h(NTooltip, null, {
+          trigger: () => h('div', { class: 'inline-block cursor-not-allowed opacity-60' }, [switchComp]),
+          default: () => '平台已停用的遊戲無法由商戶啟用'
+        })
+      }
+
+      return switchComp
+    }
+  },
+  { title: '操作', key: 'actions', width: 150, fixed: 'right', render: () => h('div', { class: 'flex gap-2' }, [
+    h(NButton, { size: 'small', secondary: true }, { default: () => '限額' }),
+    h(NButton, { size: 'small', secondary: true }, { default: () => '維護' })
+  ]) }
 ]
 
 onMounted(fetchGames)
 </script>
 
 <template>
-    <div class="p-6">
-        <h1 class="text-2xl font-bold mb-6 flex items-center gap-2">
-            <span>Game</span> {{ t('merchantGame.title') }}
-        </h1>
+  <div class="space-y-6">
+    <header>
+      <h1 class="text-2xl font-bold text-white">我的遊戲</h1>
+      <p class="mt-2 text-sm text-gray-500">商戶查看已授權遊戲、支援幣別、單槍群組與維護狀態；平台停用遊戲不可自行啟用。</p>
+    </header>
 
-        <n-alert type="info" class="mb-4" :bordered="false">
-            {{ t('merchantGame.alertInfo') }}
-        </n-alert>
+    <n-alert type="info" :bordered="false" class="!bg-[#14283a]">
+      單槍群組由 GGAP 或上級代理開放給商戶，商戶可查看目前套用範圍與維護時間。
+    </n-alert>
 
-        <PageFilterBar
-            v-model:searchValue="searchValue"
-            :searchPlaceholder="t('merchantGame.searchPlaceholder')"
-            @reset="handleReset"
-        >
-            <template #filters>
-                <n-select 
-                    v-model:value="typeFilter" 
-                    :options="typeOptions"
-                    class="w-36"
-                    placeholder="Type"
-                />
-                <n-select 
-                    v-model:value="providerFilter" 
-                    :options="providerOptions"
-                    class="w-40"
-                    placeholder="Provider"
-                />
-            </template>
-        </PageFilterBar>
+    <n-card>
+      <div class="mb-4 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_160px_180px_auto]">
+        <n-input v-model:value="searchValue" clearable placeholder="搜尋遊戲名稱 / 代碼 / 單槍群組" />
+        <n-select v-model:value="typeFilter" :options="typeOptions" placeholder="遊戲類型" />
+        <n-select v-model:value="providerFilter" :options="providerOptions" placeholder="供應商" />
+        <n-button tertiary @click="handleReset">重置</n-button>
+      </div>
 
-        <!-- Batch Action Bar -->
-        <div v-if="checkedRowKeys.length > 0" class="mb-4 p-3 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-between">
-            <span class="text-gray-200 font-medium ml-2">
-                {{ t('merchantGame.selectedCount', { count: checkedRowKeys.length }) }}
-            </span>
-            <n-space>
-                <n-button size="small" type="error" ghost @click="handleBatchAction(false)">
-                    {{ t('merchantGame.disableSelected') }}
-                </n-button>
-                <n-button size="small" type="primary" @click="handleBatchAction(true)">
-                    {{ t('merchantGame.enableSelected') }}
-                </n-button>
-            </n-space>
+      <div v-if="checkedRowKeys.length > 0" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded border border-gray-700 bg-gray-800 p-3">
+        <span class="text-sm text-gray-200">已選擇 {{ checkedRowKeys.length }} 款遊戲</span>
+        <div class="flex gap-2">
+          <n-button size="small" type="error" ghost @click="handleBatchAction(false)">停用所選</n-button>
+          <n-button size="small" type="primary" @click="handleBatchAction(true)">啟用所選</n-button>
         </div>
+      </div>
 
-        <n-data-table
-            v-model:checked-row-keys="checkedRowKeys"
-            :columns="withTableSorters(columns)"
-            :data="filteredGames"
-            :loading="loading"
-            :pagination="{ pageSize: 15 }"
-            :row-key="(row) => row.game_id"
-            striped
-        />
-    </div>
+      <n-data-table
+        v-model:checked-row-keys="checkedRowKeys"
+        :columns="withTableSorters(columns)"
+        :data="filteredGames"
+        :loading="loading"
+        :pagination="{ pageSize: 15 }"
+        :row-key="row => row.game_id"
+        :scroll-x="1540"
+        striped
+      />
+    </n-card>
+  </div>
 </template>

@@ -27,6 +27,10 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { ReplayOutlined, SearchOutlined, SettingsOutlined, VisibilityOutlined } from '@vicons/material'
 import { withTableSorters } from '../../../utils/tableSort'
+import { formatDisplayAmount } from '../../../utils/format'
+import { getGameLimitGroups } from '../../../mocks/gameLimits'
+import type { GameBetLimitGroup } from '../../../types/gameLimit'
+import { gameLimitLevelLabel, gameLimitStatusLabel } from '../../../types/gameLimit'
 
 type GameStatus = 'active' | 'maintenance' | 'disabled'
 type GameType = 'Slot' | 'Live' | 'Fishing' | 'Sports'
@@ -66,6 +70,7 @@ interface GameRow {
   group_names: string[]
   merchant_enabled_count: number
   bet_limit: string
+  bet_limit_groups: GameBetLimitGroup[]
   last_synced_at: string
   maintenance_reason: string
   maintenance_schedule_type: MaintenanceScheduleType
@@ -118,6 +123,7 @@ const rows = ref<GameRow[]>([
     group_names: ['熱門電子', 'PG 精選'],
     merchant_enabled_count: 18,
     bet_limit: '0.2 - 100 USDT',
+    bet_limit_groups: getGameLimitGroups('PG-001'),
     last_synced_at: '2026-07-07T08:30:00.000Z',
     maintenance_reason: '-',
     maintenance_schedule_type: 'weekly',
@@ -153,6 +159,7 @@ const rows = ref<GameRow[]>([
     group_names: ['熱門電子', 'PG 精選'],
     merchant_enabled_count: 15,
     bet_limit: '0.2 - 80 USDT',
+    bet_limit_groups: getGameLimitGroups('PG-002'),
     last_synced_at: '2026-07-07T08:30:00.000Z',
     maintenance_reason: '-',
     maintenance_schedule_type: 'weekly',
@@ -186,6 +193,7 @@ const rows = ref<GameRow[]>([
     group_names: ['真人娛樂'],
     merchant_enabled_count: 11,
     bet_limit: '1 - 500 USDT',
+    bet_limit_groups: getGameLimitGroups('EVO-001'),
     last_synced_at: '2026-07-07T07:40:00.000Z',
     maintenance_reason: '-',
     maintenance_schedule_type: 'monthly',
@@ -219,6 +227,7 @@ const rows = ref<GameRow[]>([
     group_names: ['熱門電子', '七月活動'],
     merchant_enabled_count: 20,
     bet_limit: '0.2 - 120 USDT',
+    bet_limit_groups: getGameLimitGroups('PP-001'),
     last_synced_at: '2026-07-07T06:58:00.000Z',
     maintenance_reason: '-',
     maintenance_schedule_type: 'monthly',
@@ -252,6 +261,7 @@ const rows = ref<GameRow[]>([
     group_names: ['JILI 測試分組'],
     merchant_enabled_count: 7,
     bet_limit: '0.1 - 60 USDT',
+    bet_limit_groups: getGameLimitGroups('JILI-001'),
     last_synced_at: '2026-07-07T10:12:00.000Z',
     maintenance_reason: 'Provider API 測試中',
     maintenance_schedule_type: 'none',
@@ -430,6 +440,16 @@ const columns: DataTableColumns<GameRow> = [
     ])
   },
   { title: '遊戲分組', key: 'group_names', width: 220, render: row => h('div', { class: 'flex flex-wrap gap-1' }, row.group_names.map(name => h(NTag, { size: 'small', bordered: false }, { default: () => name }))) },
+  {
+    title: '單槍群組',
+    key: 'bet_limit_groups',
+    width: 210,
+    render: row => h('div', { class: 'flex flex-wrap gap-1' }, row.bet_limit_groups.slice(0, 2).map(group => h(NTag, {
+      size: 'small',
+      bordered: false,
+      type: group.is_default ? 'success' : 'info'
+    }, { default: () => group.limit_group_name })))
+  },
   { title: '商戶啟用', key: 'merchant_enabled_count', width: 110, align: 'right', render: row => `${row.merchant_enabled_count} 家` },
   { title: '裝置', key: 'supported_devices', width: 160, render: row => row.supported_devices.join(' / ') },
   { title: '結算幣別', key: 'settlement_currency', width: 110, render: row => h(NTag, { type: 'success', size: 'small', bordered: false }, { default: () => row.settlement_currency }) },
@@ -455,6 +475,18 @@ const authColumns: DataTableColumns<MerchantAuthorization> = [
   { title: '代理', key: 'agent_name' },
   { title: '狀態', key: 'status', render: row => h(NTag, { type: row.status === 'enabled' ? 'success' : 'warning', size: 'small', bordered: false }, { default: () => row.status === 'enabled' ? '啟用' : '停用' }) },
   { title: '排序', key: 'custom_sort', align: 'right' }
+]
+
+const limitColumns: DataTableColumns<GameBetLimitGroup> = [
+  { title: '限額群組', key: 'limit_group_name', width: 180, render: row => h('div', {}, [h('div', row.limit_group_name), h('div', { class: 'font-mono text-xs text-slate-500' }, row.limit_group_code)]) },
+  { title: '層級', key: 'group_level', width: 100, render: row => h(NTag, { type: row.is_default ? 'success' : 'info', size: 'small', bordered: false }, { default: () => row.is_default ? '預設' : gameLimitLevelLabel[row.group_level] }) },
+  { title: '顯示幣別', key: 'display_currency', width: 110 },
+  { title: '最小投注', key: 'min_bet_display', align: 'right', render: row => formatDisplayAmount(row.min_bet_display, row.display_currency) },
+  { title: '最大投注', key: 'max_bet_display', align: 'right', render: row => formatDisplayAmount(row.max_bet_display, row.display_currency) },
+  { title: '跳動單位', key: 'bet_step_display', align: 'right', render: row => formatDisplayAmount(row.bet_step_display, row.display_currency) },
+  { title: 'Provider 上限代碼', key: 'provider_limit_code', width: 150 },
+  { title: '套用商戶', key: 'merchant_count', align: 'right', render: row => `${row.merchant_count} 家` },
+  { title: '狀態', key: 'status', width: 90, render: row => h(NTag, { type: row.status === 'active' ? 'success' : 'warning', size: 'small', bordered: false }, { default: () => gameLimitStatusLabel[row.status] }) }
 ]
 </script>
 
@@ -553,6 +585,13 @@ const authColumns: DataTableColumns<MerchantAuthorization> = [
               <n-alert type="info" :show-icon="false" class="mt-3">
                 遊戲分組只影響展示與商戶遊戲包，不改變 Provider API 或交易處理。
               </n-alert>
+            </n-tab-pane>
+
+            <n-tab-pane name="limits" tab="單槍群組">
+              <n-alert type="info" :show-icon="false" class="mb-3">
+                Provider 預設會開放最高投注區間，平台再依遊戲、商戶與特殊會員套用單次下注區間；正式交易會保存 Session 限額快照。
+              </n-alert>
+              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limit_groups" :pagination="false" :scroll-x="1120" />
             </n-tab-pane>
 
             <n-tab-pane name="auth" tab="商戶授權">

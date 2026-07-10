@@ -24,6 +24,10 @@ import type { DataTableColumns } from 'naive-ui'
 import { AccountBalanceWalletOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
 import { withTableSorters } from '../../../utils/tableSort'
+import { formatDisplayAmount } from '../../../utils/format'
+import { getPlayerBetLimits } from '../../../mocks/gameLimits'
+import type { PlayerBetLimit } from '../../../types/gameLimit'
+import { gameLimitSourceLabel, gameLimitStatusLabel } from '../../../types/gameLimit'
 
 type WalletMode = 'seamless' | 'transfer'
 type SessionStatus = 'online' | 'idle' | 'expired'
@@ -95,6 +99,7 @@ interface PlayerWallet {
   risk_status: RiskStatus
   daily_bet_limit: number
   single_bet_limit: number
+  bet_limits: PlayerBetLimit[]
   abnormal_count: number
   created_at: string
   last_login_at: string
@@ -138,6 +143,7 @@ const rows = ref<PlayerWallet[]>([
     risk_status: 'normal',
     daily_bet_limit: 500000,
     single_bet_limit: 50000,
+    bet_limits: getPlayerBetLimits('PW-OP1001-mem_8842-TWD'),
     abnormal_count: 0,
     created_at: '2026-06-18T05:20:00.000Z',
     last_login_at: '2026-07-07T09:10:00.000Z',
@@ -176,6 +182,7 @@ const rows = ref<PlayerWallet[]>([
     risk_status: 'normal',
     daily_bet_limit: 250000,
     single_bet_limit: 20000,
+    bet_limits: getPlayerBetLimits('PW-OP1001-mem_8842-PHP'),
     abnormal_count: 0,
     created_at: '2026-06-22T07:00:00.000Z',
     last_login_at: '2026-07-06T21:32:00.000Z',
@@ -210,6 +217,7 @@ const rows = ref<PlayerWallet[]>([
     risk_status: 'watchlist',
     daily_bet_limit: 600000,
     single_bet_limit: 60000,
+    bet_limits: getPlayerBetLimits('PW-OP1008-nova_7711-THB'),
     abnormal_count: 2,
     created_at: '2026-06-28T03:12:00.000Z',
     last_login_at: '2026-07-07T08:15:00.000Z',
@@ -247,6 +255,7 @@ const rows = ref<PlayerWallet[]>([
     risk_status: 'frozen',
     daily_bet_limit: 0,
     single_bet_limit: 0,
+    bet_limits: getPlayerBetLimits('PW-OP1009-dragon_9255-VND'),
     abnormal_count: 6,
     created_at: '2026-07-01T06:30:00.000Z',
     last_login_at: '2026-07-06T14:10:00.000Z',
@@ -418,6 +427,17 @@ const sessionColumns: DataTableColumns<PlayerSession> = [
   { title: '最後活躍', key: 'last_active_at', width: 180, render: row => formatDateTime(row.last_active_at) }
 ]
 
+const limitColumns: DataTableColumns<PlayerBetLimit> = [
+  { title: 'Provider', key: 'provider_id', width: 100 },
+  { title: '遊戲類型', key: 'game_type', width: 100 },
+  { title: '單槍群組', key: 'limit_group_name', width: 200 },
+  { title: '最小投注', key: 'min_bet', align: 'right', render: row => formatDisplayAmount(row.min_bet, row.display_currency) },
+  { title: '最大投注', key: 'max_bet', align: 'right', render: row => formatDisplayAmount(row.max_bet, row.display_currency) },
+  { title: '來源', key: 'source', width: 130, render: row => h(NTag, { type: row.source === 'player_override' ? 'warning' : 'success', size: 'small', bordered: false }, { default: () => gameLimitSourceLabel[row.source] }) },
+  { title: '生效時間', key: 'effective_at', width: 175, render: row => formatDateTime(row.effective_at) },
+  { title: '狀態', key: 'status', width: 90, render: row => h(NTag, { type: row.status === 'active' ? 'success' : 'error', size: 'small', bordered: false }, { default: () => gameLimitStatusLabel[row.status] }) }
+]
+
 const transactionColumns: DataTableColumns<PlayerTransaction> = [
   { title: '交易 ID', key: 'transaction_id', width: 170, render: row => h('span', { class: 'font-mono text-xs' }, row.transaction_id) },
   { title: '類型', key: 'type', width: 110 },
@@ -539,6 +559,13 @@ const transactionColumns: DataTableColumns<PlayerTransaction> = [
                 Launch Game 帶入 display_currency，Session 保存 exchange_rate_id；Provider 交易正式以 USDT 入帳。
               </n-alert>
               <n-data-table :columns="withTableSorters(sessionColumns)" :data="currentRow.sessions" :pagination="false" :scroll-x="1140" />
+            </n-tab-pane>
+
+            <n-tab-pane name="limits" tab="單槍限額">
+              <n-alert type="info" :show-icon="false" class="mb-4">
+                套用順序：特殊會員覆寫 > 會員分層 > 商戶遊戲限額 > 遊戲預設群組。正式注單會保存當次 Session 的限額快照。
+              </n-alert>
+              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limits" :pagination="false" :scroll-x="1080" />
             </n-tab-pane>
 
             <n-tab-pane name="transactions" tab="交易流水">

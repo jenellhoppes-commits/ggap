@@ -30,6 +30,10 @@ import {
 } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
 import { withTableSorters } from '../../../utils/tableSort'
+import { formatDisplayAmount } from '../../../utils/format'
+import { getBetLimitSnapshot } from '../../../mocks/gameLimits'
+import type { BetLimitSnapshot } from '../../../types/gameLimit'
+import { gameLimitCheckResultLabel, gameLimitSourceLabel } from '../../../types/gameLimit'
 
 type BetStatus = 'settled' | 'unsettled' | 'cancelled' | 'provider_pending' | 'repairing' | 'abnormal'
 type WalletMode = 'seamless' | 'transfer'
@@ -93,6 +97,7 @@ interface BetRow {
   settled_at: string
   provider_payload: string
   wallet_payload: string
+  bet_limit_snapshot: BetLimitSnapshot
   transaction_flows: FlowRecord[]
   repair_records: RepairRecord[]
   logs: OperationLog[]
@@ -147,6 +152,7 @@ const rows = ref<BetRow[]>([
     settled_at: '2026-07-07T08:32:06.000Z',
     provider_payload: '{"roundId":"R-PG-8842-78231","bet":3200,"win":5400,"currency":"TWD","status":"SETTLED"}',
     wallet_payload: '{"callback":"seamless","debit":3200,"credit":5400,"idempotency_key":"idem-op1001-pg-8842"}',
+    bet_limit_snapshot: getBetLimitSnapshot('BET-20260707-000884'),
     transaction_flows: [
       { flow_id: 'TX-20260707-000188', flow_type: 'Bet', status: 'success', amount: -3200, currency: 'TWD', created_at: '2026-07-07T08:31:22.000Z' },
       { flow_id: 'TX-20260707-000189', flow_type: 'Win', status: 'success', amount: 5400, currency: 'TWD', created_at: '2026-07-07T08:32:06.000Z' }
@@ -191,6 +197,7 @@ const rows = ref<BetRow[]>([
     settled_at: '-',
     provider_payload: '{"roundId":"R-PG-7711-99820","bet":3200,"currency":"THB","status":"PENDING"}',
     wallet_payload: '{"wallet_mode":"transfer","ledger_id":"TR-20260707-000077","lock":3200}',
+    bet_limit_snapshot: getBetLimitSnapshot('BET-20260707-000771'),
     transaction_flows: [
       { flow_id: 'TX-20260707-000241', flow_type: 'Bet', status: 'pending', amount: -3200, currency: 'THB', created_at: '2026-07-07T09:02:18.000Z' }
     ],
@@ -236,6 +243,7 @@ const rows = ref<BetRow[]>([
     settled_at: '2026-07-07T10:08:00.000Z',
     provider_payload: '{"roundId":"R-JILI-5520-14002","bet":1800,"refund":1800,"status":"REFUND_SUCCESS"}',
     wallet_payload: '{"callback":"refund","amount":1800,"status":"timeout","idempotency_key":"idem-op1006-refund-14002"}',
+    bet_limit_snapshot: getBetLimitSnapshot('BET-20260707-000552'),
     transaction_flows: [
       { flow_id: 'TX-20260707-000266', flow_type: 'Refund', status: 'failed', amount: 1800, currency: 'PHP', created_at: '2026-07-07T10:08:00.000Z' }
     ],
@@ -281,6 +289,7 @@ const rows = ref<BetRow[]>([
     settled_at: '-',
     provider_payload: '{"roundId":"R-PP-9255-77410","bet":1200000,"currency":"VND","status":"AMOUNT_MISMATCH"}',
     wallet_payload: '{"wallet_mode":"transfer","ledger_id":"TR-20260706-000219","amount":1200000,"diff":45000}',
+    bet_limit_snapshot: getBetLimitSnapshot('BET-20260706-000925'),
     transaction_flows: [
       { flow_id: 'TX-20260706-000921', flow_type: 'Bet', status: 'failed', amount: -1200000, currency: 'VND', created_at: '2026-07-06T14:18:00.000Z' }
     ],
@@ -562,6 +571,28 @@ const repairColumns: DataTableColumns<RepairRecord> = [
                 <n-descriptions-item label="鎖定時間">{{ formatDateTime(currentRow.rate_locked_at) }}</n-descriptions-item>
               </n-descriptions>
               <n-alert type="warning" :show-icon="false" class="mt-4">歷史交易使用交易日公告匯率與當下快照，日結鎖定後不會因匯率更新重算。</n-alert>
+            </n-tab-pane>
+
+            <n-tab-pane name="limit" tab="單槍快照">
+              <n-alert type="info" :show-icon="false" class="mb-4">
+                下注 request 會以 Session 當下的單槍限額快照驗證；後續修改商戶或特殊會員限額，不會回寫歷史注單。
+              </n-alert>
+              <n-descriptions bordered :column="2" label-placement="left">
+                <n-descriptions-item label="Session ID">{{ currentRow.bet_limit_snapshot.session_id }}</n-descriptions-item>
+                <n-descriptions-item label="檢查結果">
+                  <n-tag :type="currentRow.bet_limit_snapshot.check_result === 'passed' ? 'success' : currentRow.bet_limit_snapshot.check_result === 'blocked' ? 'error' : 'warning'" :bordered="false">
+                    {{ gameLimitCheckResultLabel[currentRow.bet_limit_snapshot.check_result] }}
+                  </n-tag>
+                </n-descriptions-item>
+                <n-descriptions-item label="限額群組">{{ currentRow.bet_limit_snapshot.limit_group_name }}</n-descriptions-item>
+                <n-descriptions-item label="群組代碼">{{ currentRow.bet_limit_snapshot.limit_group_code }}</n-descriptions-item>
+                <n-descriptions-item label="來源">{{ gameLimitSourceLabel[currentRow.bet_limit_snapshot.limit_source] }}</n-descriptions-item>
+                <n-descriptions-item label="Provider 上限代碼">{{ currentRow.bet_limit_snapshot.provider_limit_code }}</n-descriptions-item>
+                <n-descriptions-item label="最小投注">{{ formatDisplayAmount(currentRow.bet_limit_snapshot.min_bet_display, currentRow.bet_limit_snapshot.display_currency) }}</n-descriptions-item>
+                <n-descriptions-item label="最大投注">{{ formatDisplayAmount(currentRow.bet_limit_snapshot.max_bet_display, currentRow.bet_limit_snapshot.display_currency) }}</n-descriptions-item>
+                <n-descriptions-item label="跳動單位">{{ formatDisplayAmount(currentRow.bet_limit_snapshot.bet_step_display, currentRow.bet_limit_snapshot.display_currency) }}</n-descriptions-item>
+                <n-descriptions-item label="檢查時間">{{ formatDateTime(currentRow.bet_limit_snapshot.checked_at) }}</n-descriptions-item>
+              </n-descriptions>
             </n-tab-pane>
 
             <n-tab-pane name="payload" tab="Provider / Wallet">

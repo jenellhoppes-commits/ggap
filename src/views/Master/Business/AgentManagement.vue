@@ -28,6 +28,10 @@ import type { DataTableColumns } from 'naive-ui'
 import { EditOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
 import { withTableSorters } from '../../../utils/tableSort'
+import { formatDisplayAmount } from '../../../utils/format'
+import { makeAgentLimitAccess } from '../../../mocks/gameLimits'
+import type { AgentBetLimitAccess } from '../../../types/gameLimit'
+import { gameLimitStatusLabel } from '../../../types/gameLimit'
 
 type AgentStatus = 'active' | 'disabled' | 'frozen'
 type AgentType = 'direct' | 'channel'
@@ -99,6 +103,7 @@ interface Agent {
   updated_at: string
   remarks: string
   rates: AgentRate[]
+  bet_limit_access: AgentBetLimitAccess[]
   merchants: AgentMerchant[]
   audit_logs: AgentAuditLog[]
 }
@@ -189,6 +194,7 @@ const agents = ref<Agent[]>([
     updated_at: now,
     remarks: '平台預設直營代理，未指定代理的商戶會歸屬於此代理。',
     rates: makeRates(1, '供應商成本', { PG: 0.07, JILI: 0.085, EVO: 0.1, PP: 0.082 }),
+    bet_limit_access: makeAgentLimitAccess('TWD'),
     merchants: [
       { merchant_id: 'OP-1001', merchant_name: 'Lucky Star Digital', provider_code: 'PG', display_currency: 'VND', settlement_ggr_usdt: 2045.12, agent_upstream_rate: 0.07, merchant_quote_rate: 0.09, status: 'active' }
     ],
@@ -234,6 +240,7 @@ const agents = ref<Agent[]>([
     updated_at: now,
     remarks: 'SEA 市場 L1 外部代理，GGAP 正式收款對象。',
     rates: makeRates(1, '供應商成本', { PG: 0.075, JILI: 0.09, EVO: 0.095, PP: 0.078 }),
+    bet_limit_access: makeAgentLimitAccess('PHP'),
     merchants: [
       { merchant_id: 'OP-1002', merchant_name: 'Blue Whale Interactive', provider_code: 'PG', display_currency: 'PHP', settlement_ggr_usdt: 6210.2, agent_upstream_rate: 0.075, merchant_quote_rate: 0.095, status: 'active' }
     ],
@@ -279,6 +286,7 @@ const agents = ref<Agent[]>([
     updated_at: now,
     remarks: 'L2 代理只作層級毛利與下層報表，不產生 GGAP 應收帳單。',
     rates: makeRates(2, 'AGT-SEA-001', { PG_upstream: 0.075, JILI_upstream: 0.09, EVO_upstream: 0.095, PP_upstream: 0.078, PG: 0.088, JILI: 0.102, EVO: 0.108, PP: 0.092 }),
+    bet_limit_access: makeAgentLimitAccess('THB'),
     merchants: [
       { merchant_id: 'OP-1008', merchant_name: 'NovaPlay Entertainment', provider_code: 'PG', display_currency: 'THB', settlement_ggr_usdt: 337500, agent_upstream_rate: 0.088, merchant_quote_rate: 0.1, status: 'active' }
     ],
@@ -323,6 +331,7 @@ const agents = ref<Agent[]>([
     updated_at: now,
     remarks: 'L3 代理不可再新增子代理，可綁定商戶。',
     rates: makeRates(3, 'AGT-SEA-SUB01', { PG_upstream: 0.088, JILI_upstream: 0.102, EVO_upstream: 0.108, PP_upstream: 0.092, PG: 0.096, JILI: 0.11, EVO: 0.116, PP: 0.1 }),
+    bet_limit_access: makeAgentLimitAccess('THB', false),
     merchants: [
       { merchant_id: 'OP-1009', merchant_name: 'Golden Dragon Gaming', provider_code: 'PP', display_currency: 'THB', settlement_ggr_usdt: 346700, agent_upstream_rate: 0.1, merchant_quote_rate: 0.112, status: 'active' }
     ],
@@ -521,6 +530,7 @@ const submitForm = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       rates: makeRates(formValue.agent_level, parent?.agent_code || '供應商成本', {}),
+      bet_limit_access: makeAgentLimitAccess(formValue.display_currencies[0] || 'TWD', formValue.agent_level < 3),
       merchants: [],
       audit_logs: [
         {
@@ -704,6 +714,17 @@ const merchantColumns = computed<DataTableColumns<AgentMerchant>>(() => [
     render: row => h(MoneyText, { value: row.settlement_ggr_usdt, currency: 'USDT', showSign: true })
   }
 ])
+
+const limitAccessColumns: DataTableColumns<AgentBetLimitAccess> = [
+  { title: 'Provider', key: 'provider_name', width: 140 },
+  { title: '遊戲類型', key: 'game_type', width: 100 },
+  { title: '單槍群組', key: 'limit_group_name', width: 200, render: row => h('div', {}, [h('div', row.limit_group_name), h('div', { class: 'font-mono text-xs text-gray-500' }, row.limit_group_code)]) },
+  { title: '最小投注', key: 'min_bet_display', align: 'right', render: row => formatDisplayAmount(row.min_bet_display, row.display_currency) },
+  { title: '最大投注', key: 'max_bet_display', align: 'right', render: row => formatDisplayAmount(row.max_bet_display, row.display_currency) },
+  { title: '可下放', key: 'assignable_to_child', width: 95, render: row => h(NTag, { type: row.assignable_to_child ? 'success' : 'warning', size: 'small', bordered: false }, { default: () => row.assignable_to_child ? '是' : '否' }) },
+  { title: '套用商戶', key: 'assigned_merchant_count', align: 'right', render: row => `${row.assigned_merchant_count} 家` },
+  { title: '狀態', key: 'status', width: 90, render: row => h(NTag, { type: row.status === 'active' ? 'success' : 'warning', size: 'small', bordered: false }, { default: () => gameLimitStatusLabel[row.status] }) }
+]
 </script>
 
 <template>
@@ -832,6 +853,13 @@ const merchantColumns = computed<DataTableColumns<AgentMerchant>>(() => [
                 商戶報價用來計算代理應向商戶收取多少；GGAP 不直接向商戶開帳，正式帳務仍只看 L1 代理。
               </n-alert>
               <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentAgent.merchants" :pagination="false" :scroll-x="1180" />
+            </n-tab-pane>
+
+            <n-tab-pane name="bet-limits" tab="單槍群組">
+              <n-alert type="info" :show-icon="false" class="mb-3">
+                代理只能把平台已開放的單槍群組再分配給下級代理或商戶；L3 不可再下放給子代理，但仍可套用到商戶。
+              </n-alert>
+              <n-data-table :columns="withTableSorters(limitAccessColumns)" :data="currentAgent.bet_limit_access" :pagination="false" :scroll-x="1120" />
             </n-tab-pane>
 
             <n-tab-pane name="settlement" tab="結算邏輯">

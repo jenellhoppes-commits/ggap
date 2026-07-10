@@ -1,346 +1,111 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
-import { ref, onMounted, computed, h, reactive } from 'vue'
-import { 
-    NCard, NDataTable, NTag, NButton, useMessage, NSpace, NSwitch, 
-    NModal, NForm, NFormItem, NInput, NInputNumber, NSlider, NPopover, NIcon
-} from 'naive-ui'
-import { useI18n } from 'vue-i18n'
-import { 
-    AddOutlined, EditOutlined, LinkOutlined, AccountBalanceWalletOutlined, 
-    SearchOutlined 
-} from '@vicons/material'
-import type { Agent } from '../../../types/agent'
-import { portalOrganizationService } from '../../../services/portal/organization'
+import { computed, h, ref } from 'vue'
+import { NAlert, NButton, NCard, NDataTable, NGrid, NGridItem, NInput, NSelect, NStatistic, NTag, useMessage } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { withTableSorters } from '../../../utils/tableSort'
 
-const { t } = useI18n()
+interface SubAgentRow {
+  agent_id: string
+  agent_name: string
+  level: 'L2' | 'L3'
+  parent_agent: string
+  child_count: number
+  merchant_count: number
+  base_rate: number
+  provider_override_count: number
+  monthly_ggr_usdt: number
+  receivable_usdt: number
+  status: 'active' | 'disabled' | 'settlement_hold'
+}
+
 const message = useMessage()
+const keyword = ref('')
+const level = ref<string | null>(null)
 
-// State
-const list = ref<Agent[]>([])
-const loading = ref(false)
-const searchAccount = ref('')
-
-// Modals
-const showAgentModal = ref(false)
-const agentModalMode = ref<'create' | 'edit'>('create')
-const agentForm = reactive({
-    id: 0,
-    account: '',
-    password: '',
-    commission_rate: 30,
-    status: true, // true = active, false = disabled
-    note: ''
-})
-
-const showTransferModal = ref(false)
-const transferForm = reactive({
-    targetId: 0,
-    targetName: '',
-    currentBalance: 0, // Agent balance
-    amount: 0,
-    type: 'deposit' as 'deposit' | 'withdraw' // deposit = transfer into agent
-})
-const transferring = ref(false)
-const submitting = ref(false)
-
-const agentModalTitle = computed(() => {
-    return agentModalMode.value === 'create' 
-        ? t('merchant.agent.createTitle') 
-        : t('merchant.agent.editTitle')
-})
-
-// Columns
-// Columns
-const columns = computed(() => [
-    { title: 'ID', key: 'id', width: 80, sorter: 'default' as const },
-    { 
-        title: t('merchant.agent.account'), 
-        key: 'account',
-        width: 160,
-        sorter: 'default' as const,
-        render: (row: Agent) => h('div', { class: 'font-bold' }, row.account)
-    },
-    { 
-        title: t('merchant.agent.playerCount'), 
-        key: 'player_count',
-        sorter: 'default' as const,
-        render: (row: Agent) => row.player_count?.toLocaleString() || 0
-    },
-    { 
-        title: t('merchant.agent.monthlyPerformance'), 
-        key: 'monthly_performance',
-        sorter: 'default' as const,
-        render: (row: Agent) => row.monthly_performance ? row.monthly_performance.toLocaleString() : '0'
-    },
-    { 
-        title: t('merchant.agent.commissionRate'), 
-        key: 'commission_rate',
-        sorter: 'default' as const,
-        render: (row: Agent) => h(NTag, { type: 'info', bordered: false }, { default: () => `${row.commission_rate ?? row.percent ?? 0}%` })
-    },
-    { 
-        title: t('merchant.agent.balance'), 
-        key: 'balance',
-        sorter: 'default' as const,
-        render: (row: Agent) => h('span', { class: 'font-mono' }, row.balance.toLocaleString())
-    },
-    { 
-        title: t('merchant.agent.status'), 
-        key: 'status',
-        width: 140,
-        render: (row: Agent) => h('div', { class: 'flex items-center gap-2' }, [
-            h(NSwitch, {
-                value: row.state === 'active',
-                size: 'small',
-                onUpdateValue: (val) => handleStatusChange(row, val)
-            }),
-            h('span', { class: 'text-xs text-gray-400' }, row.state === 'active' ? t('common.enabled') : t('common.disabled')) 
-        ])
-    },
-    { 
-        title: t('merchant.agent.actions'), 
-        key: 'actions',
-        width: 180,
-        render: (row: Agent) => h(NSpace, { size: 'small' }, {
-            default: () => [
-                h(NButton, { 
-                    size: 'small', secondary: true, type: 'warning',
-                    onClick: () => openTransfer(row)
-                }, { icon: () => h(AccountBalanceWalletOutlined) }),
-                h(NButton, { 
-                    size: 'small', secondary: true, type: 'primary',
-                    onClick: () => openEdit(row)
-                }, { icon: () => h(EditOutlined) }),
-                h(NPopover, { trigger: 'click', placement: 'bottom' }, {
-                    trigger: () => h(NButton, { size: 'small', secondary: true }, { icon: () => h(LinkOutlined) }),
-                    default: () => h('div', { class: 'p-2 flex gap-2 items-center bg-[#18181c] rounded border border-gray-700' }, [
-                        h('span', { class: 'text-gray-200 px-2 py-1 text-xs break-all' }, 
-                            `https://platform.com/r/${row.promotion_code || 'REF' + row.id}`
-                        ),
-                        h(NButton, { 
-                            size: 'tiny', type: 'primary',
-                            onClick: () => copyLink(`https://platform.com/r/${row.promotion_code || 'REF' + row.id}`)
-                        }, { default: () => t('merchant.agent.copySuccess') })
-                    ])
-                })
-            ]
-        })
-    }
+const rows = ref<SubAgentRow[]>([
+  { agent_id: 'AGT-SEA-L2', agent_name: 'SEA L2 Agency', level: 'L2', parent_agent: 'SEA Master Agent', child_count: 2, merchant_count: 18, base_rate: 7.8, provider_override_count: 4, monthly_ggr_usdt: 42100, receivable_usdt: 3283.8, status: 'active' },
+  { agent_id: 'AGT-VN-L3', agent_name: 'VN L3 Agency', level: 'L3', parent_agent: 'SEA L2 Agency', child_count: 0, merchant_count: 7, base_rate: 8.4, provider_override_count: 2, monthly_ggr_usdt: 18300, receivable_usdt: 1537.2, status: 'active' },
+  { agent_id: 'AGT-PH-L2', agent_name: 'PH Channel', level: 'L2', parent_agent: 'SEA Master Agent', child_count: 1, merchant_count: 5, base_rate: 8.1, provider_override_count: 3, monthly_ggr_usdt: -260, receivable_usdt: 0, status: 'settlement_hold' },
+  { agent_id: 'AGT-ID-L3', agent_name: 'ID Local Desk', level: 'L3', parent_agent: 'PH Channel', child_count: 0, merchant_count: 3, base_rate: 8.9, provider_override_count: 1, monthly_ggr_usdt: 9600, receivable_usdt: 854.4, status: 'disabled' }
 ])
 
-// Actions
-const fetchData = async () => {
-    loading.value = true
-    try {
-        const data = await portalOrganizationService.listSubAgents()
-        list.value = data.list
-    } finally {
-        loading.value = false
+const filteredRows = computed(() => rows.value.filter((row) => {
+  const text = `${row.agent_id} ${row.agent_name} ${row.parent_agent}`.toLowerCase()
+  return (!keyword.value || text.includes(keyword.value.toLowerCase())) && (!level.value || row.level === level.value)
+}))
+
+const totalReceivable = computed(() => filteredRows.value.reduce((sum, row) => sum + row.receivable_usdt, 0))
+const l2Count = computed(() => rows.value.filter(row => row.level === 'L2').length)
+const l3Count = computed(() => rows.value.filter(row => row.level === 'L3').length)
+const merchantCount = computed(() => rows.value.reduce((sum, row) => sum + row.merchant_count, 0))
+
+const handleCreate = () => {
+  message.info('演示：L1 可新增 L2，L2 可新增 L3，L3 不可再新增下級代理。')
+}
+
+const columns: DataTableColumns<SubAgentRow> = [
+  { title: '代理代碼', key: 'agent_id', width: 140, render: row => h('span', { class: 'font-mono text-cyan-300' }, row.agent_id) },
+  { title: '代理名稱', key: 'agent_name', minWidth: 160 },
+  { title: '層級', key: 'level', width: 80, render: row => h(NTag, { type: row.level === 'L2' ? 'info' : 'warning', size: 'small', bordered: false }, { default: () => row.level }) },
+  { title: '上級代理', key: 'parent_agent', minWidth: 150 },
+  { title: '下級代理', key: 'child_count', width: 100, align: 'right' },
+  { title: '商戶數', key: 'merchant_count', width: 90, align: 'right' },
+  { title: '基準費率', key: 'base_rate', width: 110, align: 'right', render: row => `${row.base_rate}%` },
+  { title: '供應商覆寫', key: 'provider_override_count', width: 120, align: 'right', render: row => `${row.provider_override_count} 組` },
+  { title: '本月 GGR', key: 'monthly_ggr_usdt', width: 130, align: 'right', render: row => h('span', { class: row.monthly_ggr_usdt >= 0 ? 'text-emerald-400' : 'text-red-400' }, `USDT ${row.monthly_ggr_usdt.toLocaleString()}`) },
+  { title: '應收', key: 'receivable_usdt', width: 120, align: 'right', render: row => `USDT ${row.receivable_usdt.toLocaleString()}` },
+  {
+    title: '狀態',
+    key: 'status',
+    width: 110,
+    render: row => {
+      const typeMap = { active: 'success', disabled: 'error', settlement_hold: 'warning' } as const
+      const labelMap = { active: '啟用', disabled: '停用', settlement_hold: '結算觀察' }
+      return h(NTag, { type: typeMap[row.status], size: 'small', bordered: false }, { default: () => labelMap[row.status] })
     }
-}
-
-const handleStatusChange = async (row: Agent, active: boolean) => {
-    // Optimistic Update
-    const oldState = row.state
-    row.state = active ? 'active' : 'disabled'
-    try {
-        await portalOrganizationService.updateAgentState(row.id, row.state)
-        message.success(t('common.success'))
-    } catch (e) {
-        row.state = oldState
-        message.error(t('common.failed'))
-    }
-}
-
-const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url)
-    message.success(t('merchant.agent.copySuccess'))
-}
-
-// Modal Handlers
-const openCreate = () => {
-    agentModalMode.value = 'create'
-    agentForm.id = 0
-    agentForm.account = ''
-    agentForm.password = ''
-    agentForm.commission_rate = 30
-    agentForm.status = true
-    agentForm.note = ''
-    showAgentModal.value = true
-}
-
-const openEdit = (row: Agent) => {
-    agentModalMode.value = 'edit'
-    agentForm.id = row.id
-    agentForm.account = row.account
-    agentForm.commission_rate = row.commission_rate ?? row.percent ?? 30
-    agentForm.status = row.state === 'active'
-    agentForm.note = row.description || ''
-    showAgentModal.value = true
-}
-
-const submitAgent = async () => {
-    if (agentModalMode.value === 'create' && !agentForm.account) {
-        message.error(t('form.required', { field: t('merchant.agent.account') }))
-        return
-    }
-    
-    submitting.value = true
-    try {
-        const payload = {
-            ...agentForm,
-            state: agentForm.status ? 'active' as const : 'disabled' as const
-        }
-
-        if (agentModalMode.value === 'create') {
-            await portalOrganizationService.createAgent(payload)
-        } else {
-            await portalOrganizationService.updateAgent(agentForm.id, payload)
-        }
-
-        message.success(t('common.success'))
-        showAgentModal.value = false
-        fetchData()
-    } finally {
-        submitting.value = false
-    }
-}
-
-const openTransfer = (row: Agent) => {
-    transferForm.targetId = row.id
-    transferForm.targetName = row.account
-    transferForm.currentBalance = row.balance
-    transferForm.amount = 0
-    transferForm.type = 'deposit'
-    showTransferModal.value = true
-}
-
-const submitTransfer = async () => {
-    if (transferForm.amount <= 0) {
-        message.warning(t('merchant.agent.transferAmount') + ' > 0')
-        return
-    }
-    
-    transferring.value = true
-    try {
-        await portalOrganizationService.transferToAgent(transferForm.targetId, transferForm.amount, transferForm.type)
-        message.success(t('common.success'))
-        showTransferModal.value = false
-        fetchData()
-    } finally {
-        transferring.value = false
-    }
-}
-
-onMounted(fetchData)
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 210,
+    fixed: 'right',
+    render: row => h('div', { class: 'flex flex-wrap gap-2' }, [
+      h(NButton, { size: 'small', secondary: true }, { default: () => '查看' }),
+      h(NButton, { size: 'small', secondary: true }, { default: () => '費率' }),
+      h(NButton, { size: 'small', secondary: true, disabled: row.level === 'L3' }, { default: () => '新增下級' })
+    ])
+  }
+]
 </script>
 
 <template>
-    <div class="p-6 space-y-4">
-        <!-- Header -->
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                {{ t('merchant.agent.title') }}
-            </h1>
-            <div class="flex gap-2">
-                <NInput v-model:value="searchAccount" :placeholder="t('merchant.agent.account')" class="w-48">
-                    <template #prefix><NIcon :component="SearchOutlined" /></template>
-                </NInput>
-                <n-button type="primary" @click="openCreate">
-                    <template #icon><NIcon :component="AddOutlined" /></template>
-                    {{ t('merchant.agent.addAgent') }}
-                </n-button>
-            </div>
-        </div>
+  <div class="space-y-6">
+    <header class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold text-white">下級代理</h1>
+        <p class="mt-2 text-sm text-gray-500">代理最多三級；L1 可開 L2，L2 可開 L3，L3 不可再開下級代理。</p>
+      </div>
+      <n-button type="primary" @click="handleCreate">新增下級代理</n-button>
+    </header>
 
-        <!-- Table -->
-        <n-card :bordered="false" class="shadow-sm">
-            <n-data-table 
-                :columns="withTableSorters(columns)" 
-                :data="list" 
-                :loading="loading" 
-                :single-line="false"
-            />
-        </n-card>
+    <n-alert type="warning" :show-icon="false" class="!bg-[#3a2b14]">
+      費率可依供應商覆寫；未指定供應商費率時，套用該代理的統一結算服務費率。下級代理與商戶只用於代理帳務，不會影響供應商結算。
+    </n-alert>
 
-        <!-- Create/Edit Modal -->
-        <!-- Create/Edit Modal -->
-        <n-modal v-model:show="showAgentModal">
-            <n-card
-                style="width: 600px"
-                :title="agentModalTitle"
-                :bordered="false"
-                size="huge"
-                role="dialog"
-                aria-modal="true"
-                closable
-                @close="showAgentModal = false"
-            >
-                <n-form label-placement="left" label-width="120">
-                    <n-form-item :label="t('merchant.agent.account')" required>
-                        <n-input v-model:value="agentForm.account" :disabled="agentModalMode === 'edit'" />
-                    </n-form-item>
-                    <n-form-item v-if="agentModalMode === 'create'" :label="t('merchant.agent.password')" required>
-                        <n-input v-model:value="agentForm.password" type="password" show-password-on="click" />
-                    </n-form-item>
-                    <n-form-item :label="t('merchant.agent.commissionRate')">
-                        <div class="w-full px-2">
-                            <n-slider v-model:value="agentForm.commission_rate" :step="1" :max="100" />
-                        </div>
-                        <span class="ml-4 w-12 text-right font-bold">{{ agentForm.commission_rate }}%</span>
-                    </n-form-item>
-                    <n-form-item :label="t('merchant.agent.status')">
-                        <n-switch v-model:value="agentForm.status">
-                            <template #checked>{{ t('common.enabled') }}</template>
-                            <template #unchecked>{{ t('common.disabled') }}</template>
-                        </n-switch>
-                    </n-form-item>
-                    <n-form-item :label="t('merchant.agent.note')">
-                        <n-input v-model:value="agentForm.note" type="textarea" />
-                    </n-form-item>
-                </n-form>
-                <template #footer>
-                    <div class="flex justify-end gap-2">
-                        <n-button @click="showAgentModal = false">{{ t('common.cancel') }}</n-button>
-                        <n-button type="primary" :loading="submitting" @click="submitAgent">{{ t('common.confirm') }}</n-button>
-                    </div>
-                </template>
-            </n-card>
-        </n-modal>
+    <n-grid cols="1 m:2 l:4" :x-gap="16" :y-gap="16" responsive="screen">
+      <n-grid-item><n-card><n-statistic label="L2 / L3" :value="`${l2Count} / ${l3Count}`" /></n-card></n-grid-item>
+      <n-grid-item><n-card><n-statistic label="關聯商戶" :value="merchantCount" /></n-card></n-grid-item>
+      <n-grid-item><n-card><n-statistic label="下級應收" :value="`USDT ${totalReceivable.toLocaleString()}`" /></n-card></n-grid-item>
+      <n-grid-item><n-card><n-statistic label="結算幣別" value="USDT" /></n-card></n-grid-item>
+    </n-grid>
 
-        <!-- Transfer Modal -->
-        <n-modal v-model:show="showTransferModal" preset="card" :title="t('merchant.agent.transferTitle')" class="w-[500px]">
-            <div class="bg-[#18181c] p-4 rounded mb-4 border border-gray-700">
-                <div class="flex justify-between mb-2">
-                    <span class="text-gray-500">{{ t('merchant.agent.account') }}</span>
-                    <span class="font-bold">{{ transferForm.targetName }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-500">{{ t('merchant.agent.balance') }}</span>
-                    <span class="font-mono">{{ transferForm.currentBalance.toLocaleString() }}</span>
-                </div>
-            </div>
-            
-            <n-form>
-                 <n-form-item :label="t('merchant.agent.transferAmount')">
-                    <n-input-number 
-                        v-model:value="transferForm.amount" 
-                        class="w-full" 
-                        :min="1"
-                        :show-button="false"
-                    >
-                        <template #prefix>$</template>
-                    </n-input-number>
-                </n-form-item>
-            </n-form>
-
-            <template #footer>
-                <div class="flex justify-end gap-2">
-                    <n-button @click="showTransferModal = false">{{ t('common.cancel') }}</n-button>
-                    <n-button type="primary" :loading="transferring" @click="submitTransfer">{{ t('common.confirm') }}</n-button>
-                </div>
-            </template>
-        </n-modal>
-    </div>
+    <n-card>
+      <div class="mb-4 grid gap-3 md:grid-cols-[minmax(260px,1fr)_180px_auto]">
+        <n-input v-model:value="keyword" clearable placeholder="搜尋代理代碼 / 名稱 / 上級代理" />
+        <n-select v-model:value="level" clearable placeholder="代理層級" :options="[{ label: 'L2', value: 'L2' }, { label: 'L3', value: 'L3' }]" />
+        <n-button tertiary @click="keyword = ''; level = null">重置</n-button>
+      </div>
+      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1480" striped />
+    </n-card>
+  </div>
 </template>

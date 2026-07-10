@@ -1,362 +1,133 @@
-﻿<script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
-import { ref, onMounted, h, computed } from 'vue'
-import { 
-    NCard, NDataTable, NButton, useMessage, NSpin, NTag, NStatistic, NGrid, NGridItem,
-    NModal, NForm, NFormItem, NInput, NInputNumber
-} from 'naive-ui'
-import { useI18n } from 'vue-i18n'
+<script setup lang="ts">
+import { computed, h } from 'vue'
+import { useRoute } from 'vue-router'
+import { NAlert, NButton, NCard, NDataTable, NGrid, NGridItem, NStatistic, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import MoneyText from '../../../components/Common/MoneyText.vue'
-import { renderHeaderWithTooltip } from '../../../utils/renderHelpers'
-import { math } from '../../../utils/math'
-import { portalFinanceService } from '../../../services/portal/finance'
-import type { PortalInvoice } from '../../../services/portal/finance'
+import { withTableSorters } from '../../../utils/tableSort'
 
-const { t } = useI18n()
-const message = useMessage()
-const loading = ref(true)
-
-// Wallet State
-const wallet = ref({
-    credit_limit: 0,
-    balance: 0,
-    outstanding_amount: 0,
-    currency: 'USDT',
-    exchange_rate: 1,
-    credit_request_status: 'none' as 'none' | 'pending' | 'rejected'
-})
-
-type Invoice = PortalInvoice
-
-const invoices = ref<Invoice[]>([])
-
-// Modal States
-const showTopUpModal = ref(false)
-const showPaymentModal = ref(false)
-const topUpAmount = ref<number | null>(null)
-const selectedInvoice = ref<Invoice | null>(null)
-const paymentTxid = ref('')
-const submitting = ref(false)
-
-// Credit Request Modal
-const showCreditRequestModal = ref(false)
-const desiredLimit = ref<number | null>(null)
-const requestReason = ref('')
-
-// Computed: USDT conversion for top-up
-const topUpUsdtHint = computed(() => {
-    if (!topUpAmount.value || topUpAmount.value <= 0) return ''
-    // QA Fix: Use math.div for precision instead of /
-    const usdt = math.div(topUpAmount.value, wallet.value.exchange_rate).toFixed(2)
-    return t('invoices.payAmountHint', { amount: usdt })
-})
-
-// Mock USDT Address
-const MOCK_USDT_ADDRESS = 'TXqhWJRPVGDrjLZAfqFJuQB2kZNR5cLcSZ'
-
-const columns = computed<DataTableColumns<Invoice>>(() => [
-    {
-        title: t('invoices.invoiceNo'),
-        key: 'id',
-        width: 150,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.id.localeCompare(rowB.id),
-        render: (row) => h('span', { class: 'font-mono text-sm' }, row.id)
-    },
-    {
-        title: t('invoices.period'),
-        key: 'period',
-        width: 120,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.period.localeCompare(rowB.period)
-    },
-    {
-        title: () => renderHeaderWithTooltip(
-            t('invoices.amountDue'), 
-            'tips.invoice_amount',
-            'right'
-        ),
-        key: 'amount_due',
-        width: 150,
-        align: 'right',
-        sorter: (rowA, rowB) => (rowA.amount_due || 0) - (rowB.amount_due || 0),
-        render: (row) => {
-            if (row.amount_due === null || row.amount_due === undefined) {
-                return h('span', { class: 'text-gray-500' }, '-')
-            }
-            return h(MoneyText, { 
-                value: row.amount_due, 
-                currency: wallet.value.currency 
-            })
-        }
-    },
-    {
-        title: t('invoices.status'),
-        key: 'status',
-        width: 120,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.status.localeCompare(rowB.status),
-        render: (row) => {
-            if (row.verification_status === 'verifying') {
-                return h(NTag, { type: 'info', size: 'small', round: true, bordered: false }, 
-                    { default: () => t('invoices.verifying') })
-            }
-            const isPaid = row.status === 'paid'
-            return h(NTag, {
-                type: isPaid ? 'success' : 'warning',
-                size: 'small',
-                round: true,
-                bordered: false
-            }, { default: () => t(isPaid ? 'invoices.paid' : 'invoices.pending') })
-        }
-    },
-    {
-        title: t('common.action'),
-        key: 'actions',
-        width: 200,
-        align: 'right',
-        render: (row) => {
-            if (row.verification_status === 'verifying') {
-                return null
-            }
-            if (row.status === 'pending' && row.verification_status === 'none') {
-                return h(NButton, {
-                    size: 'small',
-                    type: 'primary',
-                    onClick: () => handlePayNow(row)
-                }, { default: () => t('invoices.payNow') })
-            }
-            return h(NButton, {
-                size: 'small',
-                onClick: () => handleViewDetail(row)
-            }, { default: () => t('invoices.viewDetail') })
-        }
-    }
-])
-
-const fetchWallet = async () => {
-    try {
-        wallet.value = await portalFinanceService.getWallet()
-    } catch (e) {
-        console.error('Failed to load wallet')
-    }
+interface AgentInvoiceRow {
+  invoice_id: string
+  period: string
+  settlement_currency: 'USDT'
+  settlement_ggr: number
+  ggap_receivable: number
+  paid_amount: number
+  unpaid_amount: number
+  status: 'pending' | 'confirmed' | 'partial' | 'paid'
 }
 
-const fetchInvoices = async () => {
-    loading.value = true
-    try {
-        const data = await portalFinanceService.listInvoices()
-        invoices.value = data.list || []
-    } catch (e) {
-        message.error(t('invoices.loadError'))
-    } finally {
-        loading.value = false
-    }
+interface MerchantAccountingRow {
+  period: string
+  display_currency: string
+  display_ggr: number
+  settlement_currency: 'USDT'
+  settlement_ggr: number
+  merchant_rate: number
+  payable_to_agent: number
+  status: 'open' | 'confirmed' | 'paid'
 }
 
-const handleViewDetail = (invoice: Invoice) => {
-    message.info(`${t('invoices.viewDetail')}: ${invoice.id}`)
+const route = useRoute()
+const isAgentPortal = computed(() => route.path.startsWith('/agent'))
+
+const agentRows: AgentInvoiceRow[] = [
+  { invoice_id: 'AGB-202607-001', period: '2026-07', settlement_currency: 'USDT', settlement_ggr: 932400, ggap_receivable: 71400, paid_amount: 0, unpaid_amount: 71400, status: 'confirmed' },
+  { invoice_id: 'AGB-202606-001', period: '2026-06', settlement_currency: 'USDT', settlement_ggr: 812100, ggap_receivable: 60000, paid_amount: 30000, unpaid_amount: 30000, status: 'partial' },
+  { invoice_id: 'AGB-202605-001', period: '2026-05', settlement_currency: 'USDT', settlement_ggr: 774000, ggap_receivable: 57000, paid_amount: 57000, unpaid_amount: 0, status: 'paid' }
+]
+
+const merchantRows: MerchantAccountingRow[] = [
+  { period: '2026-07-08', display_currency: 'TWD', display_ggr: 318000, settlement_currency: 'USDT', settlement_ggr: 9820, merchant_rate: 8.5, payable_to_agent: 834.7, status: 'open' },
+  { period: '2026-07-08', display_currency: 'PHP', display_ggr: 142000, settlement_currency: 'USDT', settlement_ggr: 2420, merchant_rate: 8.5, payable_to_agent: 205.7, status: 'confirmed' },
+  { period: '2026-07-07', display_currency: 'IDR', display_ggr: -2200000, settlement_currency: 'USDT', settlement_ggr: -134.2, merchant_rate: 8.5, payable_to_agent: 0, status: 'paid' }
+]
+
+const statusLabel = {
+  pending: '待確認',
+  confirmed: '已確認',
+  partial: '部分收款',
+  paid: '已收款',
+  open: '可開帳'
 }
 
-const handlePayNow = (invoice: Invoice) => {
-    selectedInvoice.value = invoice
-    paymentTxid.value = ''
-    showPaymentModal.value = true
-}
+const statusType = {
+  pending: 'warning',
+  confirmed: 'info',
+  partial: 'warning',
+  paid: 'success',
+  open: 'warning'
+} as const
 
-const handleSubmitTopUp = async () => {
-    if (!topUpAmount.value || topUpAmount.value <= 0) {
-        message.warning(t('validation.invalidAmount'))
-        return
-    }
-    submitting.value = true
-    try {
-        await portalFinanceService.submitTopUp(topUpAmount.value, '')
-        message.success(t('invoices.topUpSuccess'))
-        showTopUpModal.value = false
-        topUpAmount.value = null
-    } catch (e) {
-        message.error(t('validation.submitFailed'))
-    } finally {
-        submitting.value = false
-    }
-}
+const agentUnpaid = computed(() => agentRows.reduce((sum, row) => sum + row.unpaid_amount, 0))
+const agentReceivable = computed(() => agentRows.reduce((sum, row) => sum + row.ggap_receivable, 0))
+const merchantPayable = computed(() => merchantRows.reduce((sum, row) => sum + row.payable_to_agent, 0))
+const merchantSettlementGgr = computed(() => merchantRows.reduce((sum, row) => sum + row.settlement_ggr, 0))
 
-const handleSubmitPayment = async () => {
-    if (!paymentTxid.value.trim()) {
-        message.warning(t('validation.txidRequired'))
-        return
-    }
-    if (!selectedInvoice.value) return
-    
-    submitting.value = true
-    try {
-        await portalFinanceService.submitInvoicePayment(selectedInvoice.value.id, paymentTxid.value)
-        message.success(t('invoices.submitSuccess'))
-        showPaymentModal.value = false
-        const idx = invoices.value.findIndex(inv => inv.id === selectedInvoice.value?.id)
-        if (idx !== -1 && invoices.value[idx]) {
-            invoices.value[idx].verification_status = 'verifying'
-        }
-    } catch (e) {
-        message.error(t('validation.submitFailed'))
-    } finally {
-        submitting.value = false
-    }
-}
+const agentColumns: DataTableColumns<AgentInvoiceRow> = [
+  { title: '帳單編號', key: 'invoice_id', width: 150, render: row => h('span', { class: 'font-mono text-cyan-300' }, row.invoice_id) },
+  { title: '帳期', key: 'period', width: 110 },
+  { title: '結算幣別', key: 'settlement_currency', width: 100, render: row => h(NTag, { type: 'success', size: 'small', bordered: false }, { default: () => row.settlement_currency }) },
+  { title: '結算 GGR', key: 'settlement_ggr', align: 'right', render: row => `USDT ${row.settlement_ggr.toLocaleString()}` },
+  { title: 'GGAP 應收', key: 'ggap_receivable', align: 'right', render: row => h('span', { class: 'text-amber-300' }, `USDT ${row.ggap_receivable.toLocaleString()}`) },
+  { title: '已收金額', key: 'paid_amount', align: 'right', render: row => `USDT ${row.paid_amount.toLocaleString()}` },
+  { title: '未收金額', key: 'unpaid_amount', align: 'right', render: row => h('span', { class: row.unpaid_amount > 0 ? 'text-red-300' : 'text-emerald-400' }, `USDT ${row.unpaid_amount.toLocaleString()}`) },
+  { title: '狀態', key: 'status', width: 110, render: row => h(NTag, { type: statusType[row.status], size: 'small', bordered: false }, { default: () => statusLabel[row.status] }) },
+  { title: '操作', key: 'actions', width: 140, render: () => h(NButton, { size: 'small', secondary: true }, { default: () => '查看詳情' }) }
+]
 
-const handleSubmitCreditRequest = async () => {
-    if (!desiredLimit.value || desiredLimit.value <= 0) {
-        message.warning(t('validation.invalidLimit'))
-        return
-    }
-    submitting.value = true
-    try {
-        await portalFinanceService.submitCreditLimitRequest(desiredLimit.value, requestReason.value)
-        message.success(t('invoices.submitRequestSuccess'))
-        showCreditRequestModal.value = false
-        wallet.value.credit_request_status = 'pending'
-        desiredLimit.value = null
-        requestReason.value = ''
-    } catch (e) {
-        message.error(t('validation.submitFailed'))
-    } finally {
-        submitting.value = false
-    }
-}
-
-onMounted(() => {
-    fetchWallet()
-    fetchInvoices()
-})
+const merchantColumns: DataTableColumns<MerchantAccountingRow> = [
+  { title: '帳期', key: 'period', width: 120 },
+  { title: '顯示幣別', key: 'display_currency', width: 100 },
+  { title: '顯示 GGR', key: 'display_ggr', align: 'right', render: row => `${row.display_currency} ${row.display_ggr.toLocaleString()}` },
+  { title: '結算幣別', key: 'settlement_currency', width: 100, render: row => h(NTag, { type: 'success', size: 'small', bordered: false }, { default: () => row.settlement_currency }) },
+  { title: 'USDT 結算 GGR', key: 'settlement_ggr', align: 'right', render: row => h('span', { class: row.settlement_ggr >= 0 ? 'text-emerald-400' : 'text-red-400' }, `USDT ${row.settlement_ggr.toLocaleString()}`) },
+  { title: '商戶費率', key: 'merchant_rate', width: 100, align: 'right', render: row => `${row.merchant_rate}%` },
+  { title: '對代理應付參考', key: 'payable_to_agent', align: 'right', render: row => h('span', { class: 'text-amber-300' }, `USDT ${row.payable_to_agent.toLocaleString()}`) },
+  { title: '狀態', key: 'status', width: 110, render: row => h(NTag, { type: statusType[row.status], size: 'small', bordered: false }, { default: () => statusLabel[row.status] }) }
+]
 </script>
 
 <template>
-    <div class="p-6 space-y-6">
-        <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <span>Finance</span> {{ t('invoices.financeCenter') }}
-            </h1>
-            <div class="flex items-center gap-4">
-                <n-tag type="info" size="medium">{{ wallet.currency }}</n-tag>
-                <span class="text-sm text-gray-500">
-                    {{ t('invoices.exchangeRate') }}: 1 USD = {{ wallet.exchange_rate }} {{ wallet.currency }}
-                </span>
-            </div>
-        </div>
+  <div class="space-y-6">
+    <header>
+      <h1 class="text-2xl font-bold text-white">{{ isAgentPortal ? '平台帳單' : '錢包與帳務參考' }}</h1>
+      <p class="mt-2 text-sm text-gray-500">
+        <template v-if="isAgentPortal">代理查看 GGAP 對自己的正式應收帳單與收款狀態，正式結算幣別為 USDT。</template>
+        <template v-else>商戶查看自身錢包模式、交易日結與對代理應付參考；商戶不是 GGAP 正式開帳對象。</template>
+      </p>
+    </header>
 
-        <n-card>
-            <div class="flex items-center justify-between">
-                <n-grid :cols="3" gap="24">
-                    <n-grid-item>
-                        <n-statistic :label="t('invoices.creditLimit') + ' (' + wallet.currency + ')'">
-                            <div class="flex items-center gap-2">
-                                <span>{{ wallet.credit_limit.toLocaleString() }}</span>
-                                <n-button 
-                                    v-if="wallet.credit_request_status !== 'pending'"
-                                    size="tiny" 
-                                    secondary 
-                                    @click="showCreditRequestModal = true"
-                                >
-                                    {{ t('invoices.requestLimit') }}
-                                </n-button>
-                                <n-tag v-else type="warning" size="small">{{ t('invoices.requestPending') }}</n-tag>
-                            </div>
-                        </n-statistic>
-                    </n-grid-item>
-                    <n-grid-item>
-                        <n-statistic :label="t('invoices.balance') + ' (' + wallet.currency + ')'">
-                            <span class="text-green-500">{{ wallet.balance.toLocaleString() }}</span>
-                        </n-statistic>
-                    </n-grid-item>
-                    <n-grid-item>
-                        <n-statistic :label="t('invoices.outstanding') + ' (' + wallet.currency + ')'">
-                            <span class="text-red-500">{{ wallet.outstanding_amount.toLocaleString() }}</span>
-                        </n-statistic>
-                    </n-grid-item>
-                </n-grid>
-                <n-button type="primary" @click="showTopUpModal = true">
-                    {{ t('invoices.topUp') }}
-                </n-button>
-            </div>
-        </n-card>
+    <n-alert v-if="!isAgentPortal" type="warning" :show-icon="false" class="!bg-[#3a2b14]">
+      商戶端金額僅作營運與對代理帳務參考；GGAP 正式收款對象為代理，商戶正式帳單由代理自行對商戶處理。
+    </n-alert>
+    <n-alert v-else type="info" :show-icon="false" class="!bg-[#14283a]">
+      供應商帳單不會出現在代理端；供應商結算由 GGAP 平台自行處理。
+    </n-alert>
 
-        <n-card :title="t('invoices.myInvoices')">
-            <div v-if="loading" class="flex justify-center items-center h-64">
-                <n-spin size="large" />
-            </div>
-            <div v-else-if="invoices.length === 0" class="text-center py-12 text-gray-500">
-                {{ t('invoices.noInvoices') }}
-            </div>
-            <n-data-table
-                v-else
-                :columns="withTableSorters(columns)"
-                :data="invoices"
-                :pagination="{ pageSize: 10 }"
-                :bordered="false"
-                striped
-            />
-        </n-card>
+    <template v-if="isAgentPortal">
+      <n-grid cols="1 m:2 l:4" :x-gap="16" :y-gap="16" responsive="screen">
+        <n-grid-item><n-card><n-statistic label="帳單總額" :value="`USDT ${agentReceivable.toLocaleString()}`" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="未收金額" :value="`USDT ${agentUnpaid.toLocaleString()}`" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="正式幣別" value="USDT" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="帳單數" :value="agentRows.length" /></n-card></n-grid-item>
+      </n-grid>
 
-        <n-modal v-model:show="showTopUpModal" preset="card" :title="t('invoices.topUp')" class="w-[400px]">
-            <n-form>
-                <n-form-item :label="t('invoices.topUpAmount') + ' (' + wallet.currency + ')'">
-                    <n-input-number v-model:value="topUpAmount" :min="1" :placeholder="wallet.currency" class="w-full" />
-                </n-form-item>
-                <div v-if="topUpUsdtHint" class="text-sm text-gray-500 mb-4">{{ topUpUsdtHint }}</div>
-                <n-form-item :label="t('invoices.paymentAddress')">
-                    <n-input :value="MOCK_USDT_ADDRESS" readonly />
-                </n-form-item>
-                <n-form-item :label="t('invoices.txid')">
-                    <n-input :placeholder="t('invoices.txidPlaceholder')" />
-                </n-form-item>
-                <div class="flex justify-end gap-2">
-                    <n-button @click="showTopUpModal = false">{{ t('common.cancel') }}</n-button>
-                    <n-button type="primary" :loading="submitting" @click="handleSubmitTopUp">
-                        {{ t('invoices.submit') }}
-                    </n-button>
-                </div>
-            </n-form>
-        </n-modal>
-        <n-modal v-model:show="showPaymentModal" preset="card" :title="t('invoices.uploadProof')" class="w-[450px]">
-            <n-form v-if="selectedInvoice">
-                <n-form-item :label="t('invoices.amountDue')">
-                    <span class="text-xl font-bold">{{ selectedInvoice.amount_due?.toLocaleString() }} USDT</span>
-                </n-form-item>
-                <n-form-item :label="t('invoices.paymentAddress')">
-                    <n-input :value="MOCK_USDT_ADDRESS" readonly />
-                </n-form-item>
-                <n-form-item :label="t('invoices.txid')">
-                    <n-input v-model:value="paymentTxid" :placeholder="t('invoices.blockchainTxidPlaceholder')" />
-                </n-form-item>
-                <n-form-item :label="t('invoices.uploadScreenshot')">
-                    <n-button secondary disabled>{{ t('invoices.uploadImageMock') }}</n-button>
-                </n-form-item>
-                <div class="flex justify-end gap-2">
-                    <n-button @click="showPaymentModal = false">{{ t('common.cancel') }}</n-button>
-                    <n-button type="primary" :loading="submitting" @click="handleSubmitPayment">
-                        {{ t('invoices.submit') }}
-                    </n-button>
-                </div>
-            </n-form>
-        </n-modal>
+      <n-card title="平台帳單">
+        <n-data-table :columns="withTableSorters(agentColumns)" :data="agentRows" :pagination="{ pageSize: 10 }" :scroll-x="1180" striped />
+      </n-card>
+    </template>
 
-        <n-modal v-model:show="showCreditRequestModal" preset="card" :title="t('invoices.requestLimit')" class="w-[450px]">
-            <n-form>
-                <n-form-item :label="t('invoices.desiredLimit') + ' (' + wallet.currency + ')'">
-                    <n-input-number v-model:value="desiredLimit" :min="1" class="w-full" />
-                </n-form-item>
-                <n-form-item :label="t('invoices.reason')">
-                    <n-input v-model:value="requestReason" type="textarea" :placeholder="t('invoices.creditReasonPlaceholder')" />
-                </n-form-item>
-                <div class="flex justify-end gap-2">
-                    <n-button @click="showCreditRequestModal = false">{{ t('common.cancel') }}</n-button>
-                    <n-button type="primary" :loading="submitting" @click="handleSubmitCreditRequest">
-                        {{ t('invoices.submit') }}
-                    </n-button>
-                </div>
-            </n-form>
-        </n-modal>
-    </div>
+    <template v-else>
+      <n-grid cols="1 m:2 l:4" :x-gap="16" :y-gap="16" responsive="screen">
+        <n-grid-item><n-card><n-statistic label="錢包模式" value="Seamless / Transfer" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="USDT 結算 GGR" :value="`USDT ${merchantSettlementGgr.toLocaleString()}`" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="對代理應付參考" :value="`USDT ${merchantPayable.toLocaleString()}`" /></n-card></n-grid-item>
+        <n-grid-item><n-card><n-statistic label="正式開帳對象" value="代理" /></n-card></n-grid-item>
+      </n-grid>
+
+      <n-card title="交易日結摘要">
+        <n-data-table :columns="withTableSorters(merchantColumns)" :data="merchantRows" :pagination="{ pageSize: 10 }" :scroll-x="1080" striped />
+      </n-card>
+    </template>
+  </div>
 </template>

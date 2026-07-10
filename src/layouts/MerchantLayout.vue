@@ -17,7 +17,7 @@ import {
   darkTheme
 } from 'naive-ui'
 import type { GlobalThemeOverrides, MenuOption } from 'naive-ui'
-import { ExitToAppOutlined } from '@vicons/material'
+import { ExitToAppOutlined, MenuOutlined } from '@vicons/material'
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
@@ -41,8 +41,8 @@ const isAgentPortal = computed(() => currentRoute.path.startsWith('/agent'))
 const portalTitle = computed(() => isAgentPortal.value ? '代理後台' : '商戶後台')
 const portalSubtitle = computed(() => isAgentPortal.value ? '帳務與商戶管理' : '會員、投注與串接')
 const portalTag = computed(() => isAgentPortal.value ? 'AGENT' : 'MERCHANT')
-const collapsedMark = computed(() => isAgentPortal.value ? '代' : '商')
-const menuOptions = computed<MenuOption[]>(() => isAgentPortal.value ? agentMenuOptions(t) : merchantMenuOptions(t))
+const collapsedMark = computed(() => isAgentPortal.value ? 'A' : 'M')
+const menuOptions = computed<MenuOption[]>(() => isAgentPortal.value ? agentMenuOptions() : merchantMenuOptions())
 const activeKey = computed(() => currentRoute.name as string)
 
 const handleLogout = () => {
@@ -65,7 +65,7 @@ const themeOverrides: GlobalThemeOverrides = {
 
 <template>
   <n-config-provider :theme="darkTheme" :theme-overrides="themeOverrides">
-    <n-layout has-sider class="h-screen bg-[#101014]">
+    <n-layout has-sider class="portal-shell h-screen bg-[#101014]">
       <n-layout-sider
         v-if="isDesktop"
         bordered
@@ -79,7 +79,9 @@ const themeOverrides: GlobalThemeOverrides = {
       >
         <div class="flex h-16 items-center justify-center overflow-hidden whitespace-nowrap border-b border-[#333]">
           <span v-if="!collapsed" class="pl-4 text-xl font-bold tracking-widest text-white">{{ portalTitle }}</span>
-          <span v-else class="text-xl font-bold text-white">{{ collapsedMark }}</span>
+          <span v-else class="flex h-8 w-8 items-center justify-center rounded border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-300">
+            {{ collapsedMark }}
+          </span>
         </div>
         <n-menu
           :collapsed="collapsed"
@@ -91,7 +93,7 @@ const themeOverrides: GlobalThemeOverrides = {
         />
       </n-layout-sider>
 
-      <n-drawer v-model:show="showMobileMenu" :width="240" placement="left" class="bg-[#18181c]">
+      <n-drawer v-model:show="showMobileMenu" :width="280" placement="left" class="bg-[#18181c]">
         <n-drawer-content body-content-style="padding: 0;">
           <div class="flex h-16 items-center justify-center border-b border-[#333] bg-[#18181c]">
             <span class="text-xl font-bold tracking-widest text-white">{{ portalTitle }}</span>
@@ -106,31 +108,28 @@ const themeOverrides: GlobalThemeOverrides = {
       </n-drawer>
 
       <n-layout>
-        <n-layout-header bordered class="flex h-16 items-center justify-between bg-[#18181c] px-6">
-          <div class="flex items-center">
+        <n-layout-header bordered class="flex min-h-16 flex-wrap items-center justify-between gap-3 bg-[#18181c] px-4 py-3 md:h-16 md:flex-nowrap md:px-6 md:py-0">
+          <div class="flex min-w-0 items-center">
             <n-button quaternary circle @click="isMobile ? showMobileMenu = true : collapsed = !collapsed">
               <template #icon>
-                <n-icon size="24" color="#ccc">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                </n-icon>
+                <n-icon size="24" color="#ccc"><MenuOutlined /></n-icon>
               </template>
             </n-button>
-            <n-tag :type="isAgentPortal ? 'warning' : 'info'" size="small" class="ml-4">{{ portalTag }}</n-tag>
+            <n-tag :type="isAgentPortal ? 'warning' : 'info'" size="small" class="ml-3 shrink-0">{{ portalTag }}</n-tag>
+            <div class="ml-3 min-w-0 md:hidden">
+              <div class="truncate text-sm font-bold text-white">{{ portalTitle }}</div>
+              <div class="truncate text-xs text-gray-500">{{ portalSubtitle }}</div>
+            </div>
           </div>
 
-          <div class="flex items-center gap-4">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 md:flex-none md:gap-4">
             <div class="hidden text-right md:block">
               <div class="text-sm font-bold text-white">{{ portalTitle }}</div>
               <div class="text-xs text-gray-400">{{ portalSubtitle }}</div>
             </div>
             <LanguageSwitcher />
-            <div class="ml-2 flex items-center gap-3">
-              <span class="text-sm text-gray-400">
+            <div class="flex min-w-0 items-center gap-2">
+              <span class="max-w-[180px] truncate text-sm text-gray-400">
                 {{ t('common.hi') }} <span class="font-bold text-gray-200">{{ authStore.userInfo?.name || portalTag }}</span>
               </span>
               <n-button strong secondary type="error" size="small" @click="handleLogout">
@@ -141,7 +140,7 @@ const themeOverrides: GlobalThemeOverrides = {
           </div>
         </n-layout-header>
 
-        <n-layout-content class="min-h-[85vh] bg-[#101014] p-6">
+        <n-layout-content class="min-h-[85vh] overflow-auto bg-[#101014] p-4 md:p-6">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />
@@ -157,3 +156,23 @@ const themeOverrides: GlobalThemeOverrides = {
     </n-layout>
   </n-config-provider>
 </template>
+
+<style scoped>
+.portal-shell :deep(.n-layout-scroll-container),
+.portal-shell :deep(.n-scrollbar-container) {
+  scrollbar-width: thin;
+  scrollbar-color: #2f3037 #101014;
+}
+
+.portal-shell :deep(.n-layout-scroll-container::-webkit-scrollbar),
+.portal-shell :deep(.n-scrollbar-container::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+
+.portal-shell :deep(.n-layout-scroll-container::-webkit-scrollbar-thumb),
+.portal-shell :deep(.n-scrollbar-container::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: #2f3037;
+}
+</style>

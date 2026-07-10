@@ -11,14 +11,15 @@ const payload = computed(() => JSON.stringify({
   round_id: roundId.value,
   merchant_player_id: 'P-TWD-10001',
   display_currency: 'TWD',
+  display_amount: 1200,
   settlement_currency: 'USDT',
-  amount: 1200,
   settlement_amount: 37.21,
+  idempotency_key: `demo-${eventType.value}-R-20260708-TEST`,
   trace_id: 'demo-callback-test'
 }, null, 2))
 
 const submit = () => {
-  message.success('已送出測試 Callback')
+  message.success('已送出 Callback 測試 payload。')
 }
 </script>
 
@@ -26,7 +27,7 @@ const submit = () => {
   <div class="space-y-6">
     <header>
       <h1 class="text-2xl font-bold text-white">Callback 測試</h1>
-      <p class="mt-2 text-sm text-gray-500">商戶可用測試 payload 驗證 Callback URL、簽章與回應時間。</p>
+      <p class="mt-2 text-sm text-gray-500">商戶可用測試 payload 驗證 Callback URL、簽章、冪等與回應時間。</p>
     </header>
 
     <n-card>
@@ -37,7 +38,8 @@ const submit = () => {
             :options="[
               { label: 'Bet', value: 'bet' },
               { label: 'Win', value: 'win' },
-              { label: 'Refund', value: 'refund' }
+              { label: 'Refund', value: 'refund' },
+              { label: 'Cancel', value: 'cancel' }
             ]"
           />
         </n-form-item>

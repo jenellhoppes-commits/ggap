@@ -20,7 +20,7 @@ const EXCLUDED_KEYS = new Set([
   '#'
 ])
 
-const EXCLUDED_TITLES = new Set(['操作'])
+const EXCLUDED_TITLES = new Set(['操作', '動作'])
 
 const normalizeSortValue = (value: unknown): string | number => {
   if (value == null) return ''
@@ -29,9 +29,7 @@ const normalizeSortValue = (value: unknown): string | number => {
   if (value instanceof Date) return value.getTime()
   if (Array.isArray(value)) return value.map(normalizeSortValue).join(' ')
 
-  if (typeof value === 'object') {
-    return JSON.stringify(value)
-  }
+  if (typeof value === 'object') return JSON.stringify(value)
 
   const text = String(value).trim()
   if (!text) return ''
@@ -42,9 +40,7 @@ const normalizeSortValue = (value: unknown): string | number => {
   }
 
   const numeric = Number(text.replace(/[,%\s]/g, ''))
-  if (!Number.isNaN(numeric) && /^-?[\d,%.\s]+$/.test(text)) {
-    return numeric
-  }
+  if (!Number.isNaN(numeric) && /^-?[\d,%.\s]+$/.test(text)) return numeric
 
   return text.toLocaleLowerCase()
 }

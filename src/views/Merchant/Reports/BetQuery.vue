@@ -1,244 +1,125 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
-import { ref, onMounted, computed, h } from 'vue'
-import { NDataTable, NButton, NCard, NInput, NTag, NSpace, NIcon } from 'naive-ui'
-import { SearchRound, RefreshRound } from '@vicons/material'
+import { computed, h, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { NButton, NCard, NDataTable, NInput, NSelect, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import DateRangePicker from '../../../components/Common/DateRangePicker.vue'
-import MoneyText from '../../../components/Common/MoneyText.vue'
-import JsonViewer from '../../../components/Common/JsonViewer.vue'
-import { useI18n } from 'vue-i18n'
-import { useSessionStorage } from '@vueuse/core'
-import { format } from 'date-fns'
-import { portalReportService } from '../../../services/portal/reports'
-import type { BetLog } from '../../../services/portal/reports'
+import { withTableSorters } from '../../../utils/tableSort'
 
-const { t } = useI18n()
+interface BetTraceRow {
+  round_id: string
+  bet_id: string
+  agent_path: string
+  merchant_id: string
+  merchant_name: string
+  player_id: string
+  provider: string
+  game_name: string
+  display_currency: string
+  display_bet: number
+  display_win: number
+  settlement_currency: 'USDT'
+  settlement_bet: number
+  settlement_ggr: number
+  wallet_mode: 'Seamless' | 'Transfer'
+  provider_tx_id: string
+  limit_snapshot: string
+  status: 'settled' | 'pending' | 'voided' | 'abnormal'
+  created_at: string
+  settled_at: string
+}
 
-const loading = ref(false)
-const list = ref<BetLog[]>([])
+const route = useRoute()
+const isAgentPortal = computed(() => route.path.startsWith('/agent'))
+const keyword = ref('')
+const status = ref<string | null>(null)
+const walletMode = ref<string | null>(null)
 
-// QA Fix: State Persistence using SessionStorage
-const dateRange = useSessionStorage<[number, number] | null>('betQuery-dateRange', null)
-const playerId = useSessionStorage('betQuery-playerId', '')
-const roundId = useSessionStorage('betQuery-roundId', '')
+const rows: BetTraceRow[] = [
+  { round_id: 'R-20260708-8811', bet_id: 'BET-0001', agent_path: '平台直營代理 / SEA L2', merchant_id: 'OP-1001', merchant_name: 'Blue Whale Interactive', player_id: 'P-TWD-10001', provider: 'PG Soft', game_name: 'Mahjong Ways', display_currency: 'TWD', display_bet: 1200, display_win: 860, settlement_currency: 'USDT', settlement_bet: 37.21, settlement_ggr: 10.54, wallet_mode: 'Seamless', provider_tx_id: 'PG-TX-99801', limit_snapshot: 'Slot 一般會員', status: 'settled', created_at: '2026/7/8 13:41:10', settled_at: '2026/7/8 13:41:35' },
+  { round_id: 'R-20260708-8812', bet_id: 'BET-0002', agent_path: '平台直營代理 / SEA L2', merchant_id: 'OP-1002', merchant_name: 'HyperWin Network', player_id: 'P-IDR-10022', provider: 'JILI', game_name: 'Super Ace', display_currency: 'IDR', display_bet: 300000, display_win: 0, settlement_currency: 'USDT', settlement_bet: 18.24, settlement_ggr: 18.24, wallet_mode: 'Transfer', provider_tx_id: 'JL-TX-19381', limit_snapshot: 'Slot VIP 2000-5000', status: 'settled', created_at: '2026/7/8 12:55:47', settled_at: '2026/7/8 12:56:04' },
+  { round_id: 'R-20260708-8813', bet_id: 'BET-0003', agent_path: '平台直營代理', merchant_id: 'OP-1003', merchant_name: 'Lucky Star Digital', player_id: 'P-PHP-10018', provider: 'Evolution', game_name: 'Baccarat A', display_currency: 'PHP', display_bet: 5000, display_win: 7250, settlement_currency: 'USDT', settlement_bet: 85.41, settlement_ggr: -38.43, wallet_mode: 'Seamless', provider_tx_id: 'EV-TX-77001', limit_snapshot: '百家樂一般會員', status: 'pending', created_at: '2026/7/8 11:20:33', settled_at: '-' },
+  { round_id: 'R-20260708-8814', bet_id: 'BET-0004', agent_path: '平台直營代理 / SEA L2 / VN L3', merchant_id: 'OP-1004', merchant_name: 'NovaPlay Entertainment', player_id: 'P-VND-10044', provider: 'CQ9', game_name: 'Lucky Fishing', display_currency: 'VND', display_bet: 2200000, display_win: 0, settlement_currency: 'USDT', settlement_bet: 86.12, settlement_ggr: 86.12, wallet_mode: 'Transfer', provider_tx_id: 'CQ-TX-11890', limit_snapshot: 'Fishing 一般會員', status: 'abnormal', created_at: '2026/7/8 10:02:12', settled_at: '-' }
+]
 
-const showDetail = ref(false)
-const selectedLog = ref<BetLog | null>(null)
+const visibleRows = computed(() => rows.filter((row) => {
+  const text = `${row.round_id} ${row.bet_id} ${row.merchant_id} ${row.merchant_name} ${row.player_id} ${row.provider_tx_id} ${row.game_name}`.toLowerCase()
+  return (!keyword.value || text.includes(keyword.value.toLowerCase())) &&
+    (!status.value || row.status === status.value) &&
+    (!walletMode.value || row.wallet_mode === walletMode.value)
+}))
 
-const columns = computed<DataTableColumns<BetLog>>(() => [
-    { 
-        title: t('betQuery.time'), 
-        key: 'created_at',
-        width: 160,
-        align: 'right',
-        sorter: (rowA, rowB) => new Date(rowA.created_at).getTime() - new Date(rowB.created_at).getTime(),
-        render: (row) => h('span', { class: 'text-sm' }, new Date(row.created_at).toLocaleString())
-    },
-    { 
-        title: t('betQuery.roundId'), 
-        key: 'id',
-        width: 140,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.id.localeCompare(rowB.id),
-        render: (row) => h('span', { class: 'font-mono text-xs' }, row.id)
-    },
-    { 
-        title: t('betQuery.player'), 
-        key: 'player_id',
-        width: 120,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.player_id.localeCompare(rowB.player_id),
-        render: (row) => h('span', { class: 'font-mono' }, row.player_id)
-    },
-    { 
-        title: t('betQuery.game'), 
-        key: 'game_name',
-        width: 150,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.game_name.localeCompare(rowB.game_name),
-        ellipsis: { tooltip: true }
-    },
-    { 
-        title: t('betQuery.bet'), 
-        key: 'bet',
-        width: 120,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.bet - rowB.bet,
-        render: (row) => h(MoneyText, { value: row.bet, currency: row.currency })
-    },
-    { 
-        title: t('betQuery.win'), 
-        key: 'win',
-        width: 120,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.win - rowB.win,
-        render: (row) => h(MoneyText, { value: row.win, currency: row.currency })
-    },
-    {
-        title: t('betQuery.status'),
-        key: 'status',
-        width: 90,
-        align: 'right',
-        sorter: (rowA, rowB) => rowA.status.localeCompare(rowB.status),
-        render: (row) => {
-            const typeMap: Record<string, any> = {
-                win: 'success', loss: 'error', refund: 'warning'
-            }
-            return h(NTag, { type: typeMap[row.status], size: 'small', bordered: false }, 
-                { default: () => t(`status.${row.status}`) }
-            )
-        }
-    },
-    {
-        title: '',
-        key: 'action',
-        width: 60,
-        align: 'right',
-        render: (row) => h(NButton, { 
-            size: 'tiny', 
-            quaternary: true,
-            onClick: () => openDetail(row)
-        }, { default: () => '詳情' })
+const statusOptions = [
+  { label: '已結算', value: 'settled' },
+  { label: '待處理', value: 'pending' },
+  { label: '作廢', value: 'voided' },
+  { label: '異常', value: 'abnormal' }
+]
+
+const walletOptions = [
+  { label: 'Seamless', value: 'Seamless' },
+  { label: 'Transfer', value: 'Transfer' }
+]
+
+const columns = computed<DataTableColumns<BetTraceRow>>(() => [
+  { title: 'Round ID', key: 'round_id', width: 150, render: row => h('span', { class: 'font-mono text-cyan-300' }, row.round_id) },
+  { title: '注單 ID', key: 'bet_id', width: 120, render: row => h('span', { class: 'font-mono' }, row.bet_id) },
+  ...(isAgentPortal.value ? [
+    { title: '商戶 / 代理', key: 'merchant_name', minWidth: 220, render: (row: BetTraceRow) => h('div', {}, [
+      h('div', { class: 'font-medium' }, row.merchant_name),
+      h('div', { class: 'text-xs text-gray-500' }, row.agent_path)
+    ]) }
+  ] : []),
+  { title: '會員', key: 'player_id', width: 130, render: row => h('span', { class: 'font-mono' }, row.player_id) },
+  { title: 'Provider / 遊戲', key: 'game_name', minWidth: 180, render: row => h('div', {}, [h('div', row.provider), h('div', { class: 'text-xs text-gray-500' }, row.game_name)]) },
+  { title: '顯示投注', key: 'display_bet', width: 130, align: 'right', render: row => `${row.display_currency} ${row.display_bet.toLocaleString()}` },
+  { title: '顯示派彩', key: 'display_win', width: 130, align: 'right', render: row => `${row.display_currency} ${row.display_win.toLocaleString()}` },
+  { title: 'USDT 投注', key: 'settlement_bet', width: 120, align: 'right', render: row => `USDT ${row.settlement_bet.toLocaleString()}` },
+  { title: 'USDT GGR', key: 'settlement_ggr', width: 120, align: 'right', render: row => h('span', { class: row.settlement_ggr >= 0 ? 'text-emerald-400' : 'text-red-400' }, `USDT ${row.settlement_ggr.toLocaleString()}`) },
+  { title: 'Wallet', key: 'wallet_mode', width: 105 },
+  { title: 'Provider Tx', key: 'provider_tx_id', width: 140, render: row => h('span', { class: 'font-mono text-xs' }, row.provider_tx_id) },
+  { title: '單槍快照', key: 'limit_snapshot', width: 150, ellipsis: { tooltip: true } },
+  {
+    title: '狀態',
+    key: 'status',
+    width: 100,
+    render: row => {
+      const typeMap = { settled: 'success', pending: 'warning', voided: 'default', abnormal: 'error' } as const
+      const labelMap = { settled: '已結算', pending: '待處理', voided: '作廢', abnormal: '異常' }
+      return h(NTag, { type: typeMap[row.status], size: 'small', bordered: false }, { default: () => labelMap[row.status] })
     }
+  },
+  { title: '建立時間', key: 'created_at', width: 160 },
+  { title: '結算時間', key: 'settled_at', width: 160 },
+  {
+    title: '操作',
+    key: 'actions',
+    width: 170,
+    fixed: 'right',
+    render: () => h('div', { class: 'flex flex-wrap gap-2' }, [
+      h(NButton, { size: 'small', secondary: true }, { default: () => '詳情' }),
+      h(NButton, { size: 'small', secondary: true }, { default: () => '流水' })
+    ])
+  }
 ])
-
-const openDetail = (row: BetLog) => {
-    selectedLog.value = row
-    showDetail.value = true
-}
-
-const handleReset = () => {
-    dateRange.value = null
-    playerId.value = ''
-    roundId.value = ''
-}
-
-const fetchData = async () => {
-    loading.value = true
-    try {
-        let startStr = undefined
-        let endStr = undefined
-        
-        // QA Fix: Use date-fns for timezone consistency
-        if (dateRange.value) {
-            startStr = format(dateRange.value[0], 'yyyy-MM-dd')
-            endStr = format(dateRange.value[1], 'yyyy-MM-dd')
-        }
-
-        const data = await portalReportService.listBetLogs({
-            date_start: startStr,
-            date_end: endStr,
-            player_id: playerId.value || undefined,
-            round_id: roundId.value || undefined
-        })
-        list.value = data.list || []
-    } finally {
-        loading.value = false
-    }
-}
-
-onMounted(() => fetchData())
 </script>
 
 <template>
-    <div class="p-6 space-y-4">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <span>注單</span> {{ t('betQuery.title') }}
-            </h1>
-        </div>
+  <div class="space-y-6">
+    <header>
+      <h1 class="text-2xl font-bold text-white">{{ isAgentPortal ? '注單追蹤' : '注單查詢' }}</h1>
+      <p class="mt-2 text-sm text-gray-500">
+        {{ isAgentPortal ? '代理僅可查看自身代理樹範圍內的注單、商戶與會員。' : '商戶僅可查看自身會員注單、雙幣別金額、Wallet 與單槍快照。' }}
+      </p>
+    </header>
 
-        <!-- Custom Filter Section -->
-        <div class="bg-slate-800/50 p-4 rounded-lg mb-6 border border-slate-700/50 space-y-4">
-            <!-- Row 1: Date Range -->
-            <div class="flex items-center">
-                <DateRangePicker v-model:value="dateRange" />
-            </div>
-
-            <!-- Row 2: Inputs & Actions -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <!-- Round ID Input (Width set to match User ID) -->
-                    <n-input 
-                        v-model:value="roundId" 
-                        :placeholder="t('betQuery.searchRound')"
-                        class="w-64"
-                        clearable
-                        @keydown.enter="fetchData"
-                    >
-                        <template #prefix>
-                            <n-icon :component="SearchRound" class="text-gray-400" />
-                        </template>
-                    </n-input>
-
-                    <!-- Player ID Input (Width set to w-64 as requested) -->
-                    <n-input 
-                        v-model:value="playerId" 
-                        :placeholder="t('betQuery.playerId')"
-                        class="w-64"
-                        clearable
-                        @keydown.enter="fetchData"
-                    />
-                </div>
-                
-                <n-space>
-                    <!-- Search Button -->
-                    <n-button type="primary" @click="fetchData" :loading="loading">
-                        <template #icon>
-                            <n-icon :component="SearchRound" />
-                        </template>
-                        {{ t('betQuery.search') }}
-                    </n-button>
-                    <!-- Reset Button -->
-                    <n-button @click="handleReset" tertiary>
-                        <template #icon>
-                            <n-icon :component="RefreshRound" />
-                        </template>
-                        {{ t('common.reset') }}
-                    </n-button>
-                </n-space>
-            </div>
-        </div>
-
-        <!-- Data Table -->
-        <n-card>
-            <n-data-table 
-                :columns="withTableSorters(columns)" 
-                :data="list" 
-                :loading="loading" 
-                :pagination="{ pageSize: 15 }"
-                striped
-            />
-        </n-card>
-
-        <!-- Detail Drawer -->
-        <JsonViewer
-            v-model:show="showDetail"
-            :title="`${t('betQuery.roundId')}: ${selectedLog?.id || ''}`"
-            :data="selectedLog"
-            :width="550"
-        >
-            <template #summary>
-                <n-card v-if="selectedLog" size="small" class="mb-4">
-                    <div class="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                            <div class="text-xs text-gray-400">{{ t('betQuery.player') }}</div>
-                            <div class="font-bold font-mono">{{ selectedLog.player_id }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-gray-400">{{ t('betQuery.game') }}</div>
-                            <div class="font-medium">{{ selectedLog.game_name }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-gray-400">{{ t('betQuery.status') }}</div>
-                            <n-tag :type="selectedLog.status === 'win' ? 'success' : 'error'" size="small">
-                                {{ t(`status.${selectedLog.status}`) }}
-                            </n-tag>
-                        </div>
-                    </div>
-                </n-card>
-            </template>
-        </JsonViewer>
-    </div>
+    <n-card>
+      <div class="mb-4 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_160px_160px_auto]">
+        <n-input v-model:value="keyword" clearable placeholder="搜尋 Round ID / 注單 ID / 會員 / Provider Tx / 遊戲" />
+        <n-select v-model:value="status" clearable placeholder="注單狀態" :options="statusOptions" />
+        <n-select v-model:value="walletMode" clearable placeholder="Wallet 模式" :options="walletOptions" />
+        <n-button tertiary @click="keyword = ''; status = null; walletMode = null">重置</n-button>
+      </div>
+      <n-data-table :columns="withTableSorters(columns)" :data="visibleRows" :pagination="{ pageSize: 10 }" :scroll-x="isAgentPortal ? 1900 : 1700" striped />
+    </n-card>
+  </div>
 </template>
