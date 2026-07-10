@@ -22,7 +22,12 @@ async function prepareApp() {
 
     try {
         const { worker } = await import('./mocks/browser')
-        await worker.start({ onUnhandledRequest: 'bypass' })
+        await worker.start({
+            onUnhandledRequest: 'bypass',
+            serviceWorker: {
+                url: `${import.meta.env.BASE_URL}mockServiceWorker.js`
+            }
+        })
     } catch (error) {
         const { setupManualMock } = await import('./mocks/manual')
         console.warn('Failed to start MSW, using manual mock fallback:', error)
