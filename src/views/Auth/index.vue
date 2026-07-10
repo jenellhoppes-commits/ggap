@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
+import { computed, nextTick, ref, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
     NAlert,
@@ -28,6 +28,7 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const formRef = ref()
 const selectedPortal = ref<Portal>('admin')
+const pendingDemoLoginKey = 'ggap:pending-demo-login'
 const model = ref({
     username: '',
     password: ''
@@ -94,8 +95,9 @@ const handleLogin = async () => {
     }
 }
 
-const quickLogin = (portal: Portal) => {
+const quickLogin = async (portal: Portal) => {
     if (routePortal.value && routePortal.value !== portal) {
+        sessionStorage.setItem(pendingDemoLoginKey, portal)
         router.push({ path: loginPathByPortal[portal], query: { demo: portal } })
         return
     }
@@ -103,6 +105,8 @@ const quickLogin = (portal: Portal) => {
     selectedPortal.value = portal
     model.value.username = quickLoginMap[portal].username
     model.value.password = quickLoginMap[portal].password
+    await nextTick()
+    await handleLogin()
 }
 
 const goPortalLogin = (portal: Portal) => {
@@ -127,6 +131,11 @@ watchEffect(() => {
         model.value.username = quickLoginMap[demoPortal].username
         model.value.password = quickLoginMap[demoPortal].password
         router.replace(loginPathByPortal[demoPortal])
+
+        if (sessionStorage.getItem(pendingDemoLoginKey) === demoPortal) {
+            sessionStorage.removeItem(pendingDemoLoginKey)
+            void nextTick(() => handleLogin())
+        }
     }
 })
 </script>

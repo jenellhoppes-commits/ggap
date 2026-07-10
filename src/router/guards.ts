@@ -3,6 +3,14 @@ import NProgress from 'nprogress'
 import type { Portal, UserRole } from '../stores/auth'
 import { defaultPathByPortal, loginPathByPortal, useAuthStore } from '../stores/auth'
 
+const resolveAppPath = (path: string) => {
+    const base = import.meta.env.BASE_URL || '/'
+    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
+    return `${normalizedBase}${normalizedPath}` || normalizedPath
+}
+
 export const installRouterGuards = (router: Router) => {
     router.beforeEach((to, _from, next) => {
         NProgress.start()
@@ -66,6 +74,6 @@ export const installRouterGuards = (router: Router) => {
         }
 
         sessionStorage.setItem(reloadKey, '1')
-        window.location.assign(to.fullPath)
+        window.location.assign(resolveAppPath(to.fullPath))
     })
 }

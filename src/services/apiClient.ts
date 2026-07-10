@@ -134,6 +134,14 @@ const loginPathByPortal: Record<Portal, string> = {
   merchant: '/merchant/login'
 }
 
+const resolveAppPath = (path: string) => {
+  const base = import.meta.env.BASE_URL || '/'
+  const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+
+  return `${normalizedBase}${normalizedPath}` || normalizedPath
+}
+
 const handleAuthStatus = (status: number, path: string, options: RequestOptions) => {
   if (options.skipAuthRedirect || typeof window === 'undefined') return
   if (path.includes('/login')) return
@@ -142,11 +150,11 @@ const handleAuthStatus = (status: number, path: string, options: RequestOptions)
     const portal = readStoredPortal()
     const loginPath = portal ? loginPathByPortal[portal] : '/login'
     clearAuthStorage()
-    window.location.assign(`${loginPath}?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    window.location.assign(`${resolveAppPath(loginPath)}?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`)
   }
 
-  if (status === 403 && window.location.pathname !== '/403') {
-    window.location.assign('/403')
+  if (status === 403 && window.location.pathname !== resolveAppPath('/403')) {
+    window.location.assign(resolveAppPath('/403'))
   }
 }
 
