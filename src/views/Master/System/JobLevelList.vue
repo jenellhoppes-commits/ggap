@@ -21,7 +21,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns, TreeOption } from 'naive-ui'
 import { ContentCopyOutlined, EditOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type RoleStatus = 'enabled' | 'disabled' | 'system'
 
@@ -358,7 +358,7 @@ const columns: DataTableColumns<RoleRow> = [
       </div>
     </div>
 
-    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1640" />
+    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1640" />
 
     <n-drawer v-model:show="showDrawer" width="min(820px, 100vw)">
       <n-drawer-content closable>

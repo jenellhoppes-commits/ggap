@@ -23,7 +23,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { AccountBalanceWalletOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type WalletMode = 'seamless' | 'transfer'
 type RouterStatus = 'success' | 'pending' | 'failed' | 'manual_review'
@@ -710,16 +710,16 @@ const callbackColumns: DataTableColumns<CallbackRecord> = [
 
     <n-tabs v-model:value="activeTab" type="line" animated>
       <n-tab-pane name="routes" tab="錢包路由總覽">
-        <n-data-table :columns="withTableSorters(routeColumns)" :data="routeData" :pagination="{ pageSize: 10 }" :scroll-x="2220" />
+        <n-data-table :columns="withTableSorters(routeColumns)" :data="routeData" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="2220" />
       </n-tab-pane>
       <n-tab-pane name="transfers" tab="會員轉點紀錄">
-        <n-data-table :columns="withTableSorters(transferColumns)" :data="transferData" :pagination="{ pageSize: 10 }" :scroll-x="1760" />
+        <n-data-table :columns="withTableSorters(transferColumns)" :data="transferData" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1760" />
       </n-tab-pane>
       <n-tab-pane name="ledger" tab="Transfer Wallet Ledger">
-        <n-data-table :columns="withTableSorters(ledgerColumns)" :data="ledgerData" :pagination="{ pageSize: 10 }" :scroll-x="1660" />
+        <n-data-table :columns="withTableSorters(ledgerColumns)" :data="ledgerData" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1660" />
       </n-tab-pane>
       <n-tab-pane name="callbacks" tab="Callback / Idempotency">
-        <n-data-table :columns="withTableSorters(callbackColumns)" :data="callbackData" :pagination="{ pageSize: 10 }" :scroll-x="1820" />
+        <n-data-table :columns="withTableSorters(callbackColumns)" :data="callbackData" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1820" />
       </n-tab-pane>
     </n-tabs>
 

@@ -2,7 +2,7 @@
 import { computed, h, ref } from 'vue'
 import { NAlert, NCard, NDataTable, NGrid, NGridItem, NStatistic, NTabPane, NTabs, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface SettlementRow {
   subject_type: '下級代理' | '商戶'
@@ -131,15 +131,15 @@ const platformColumns: DataTableColumns<PlatformPayableRow> = [
         </n-tab-pane>
 
         <n-tab-pane name="platform" tab="平台應付">
-          <n-data-table :columns="withTableSorters(platformColumns)" :data="platformRows" :scroll-x="980" :pagination="{ pageSize: 10 }" striped />
+          <n-data-table :columns="withTableSorters(platformColumns)" :data="platformRows" :scroll-x="980" :pagination="DEFAULT_TABLE_PAGINATION" striped />
         </n-tab-pane>
 
         <n-tab-pane name="children" tab="下級代理結算">
-          <n-data-table :columns="withTableSorters(settlementColumns)" :data="childRows" :scroll-x="1280" :pagination="{ pageSize: 10 }" striped />
+          <n-data-table :columns="withTableSorters(settlementColumns)" :data="childRows" :scroll-x="1280" :pagination="DEFAULT_TABLE_PAGINATION" striped />
         </n-tab-pane>
 
         <n-tab-pane name="merchants" tab="商戶結算">
-          <n-data-table :columns="withTableSorters(settlementColumns)" :data="merchantRows" :scroll-x="1280" :pagination="{ pageSize: 10 }" striped />
+          <n-data-table :columns="withTableSorters(settlementColumns)" :data="merchantRows" :scroll-x="1280" :pagination="DEFAULT_TABLE_PAGINATION" striped />
         </n-tab-pane>
 
         <n-tab-pane name="records" tab="操作紀錄">

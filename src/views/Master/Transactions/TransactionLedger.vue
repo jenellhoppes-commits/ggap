@@ -24,7 +24,7 @@ import type { DataTableColumns } from 'naive-ui'
 import { ContentCopyRound, ReceiptLongOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
 import { adminTransactionService } from '../../../services/admin/transactions'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type WalletMode = 'seamless' | 'transfer'
 type TransactionType = 'Balance' | 'Bet' | 'Win' | 'Refund' | 'Rollback' | 'Adjustment'
@@ -562,7 +562,7 @@ const repairColumns: DataTableColumns<RepairRecord> = [
       :columns="withTableSorters(columns)"
       :data="filteredRows"
       :loading="loading"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2420"
     />
 
@@ -678,7 +678,7 @@ const repairColumns: DataTableColumns<RepairRecord> = [
               <n-data-table
                 :columns="withTableSorters(transferColumns)"
                 :data="currentRow.transfer_records"
-                :pagination="false"
+                :pagination="DEFAULT_TABLE_PAGINATION"
                 :scroll-x="1460"
               />
             </n-tab-pane>
@@ -687,7 +687,7 @@ const repairColumns: DataTableColumns<RepairRecord> = [
               <n-data-table
                 :columns="withTableSorters(repairColumns)"
                 :data="currentRow.repair_records"
-                :pagination="false"
+                :pagination="DEFAULT_TABLE_PAGINATION"
               />
             </n-tab-pane>
           </n-tabs>

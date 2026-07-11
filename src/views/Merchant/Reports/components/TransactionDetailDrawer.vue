@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../../utils/tableSort"
 import { ref, watch, h } from 'vue'
 import { NDrawer, NDrawerContent, NDataTable, useMessage, NSpin } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
@@ -92,6 +92,7 @@ const columns: DataTableColumns<TransactionDetailRow> = [
                 <n-data-table
                     :columns="withTableSorters(columns)"
                     :data="list"
+                    :pagination="DEFAULT_TABLE_PAGINATION"
                     :row-key="(row: TransactionDetailRow) => row.id"
                     striped
                 />

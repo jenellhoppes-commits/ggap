@@ -2,7 +2,7 @@
 import { computed, h, ref } from 'vue'
 import { NCard, NDataTable, NInput, NSelect, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type LedgerType = 'Bet' | 'Win' | 'Refund' | 'Cancel' | 'Transfer In' | 'Transfer Out' | 'Balance Sync'
 
@@ -99,7 +99,7 @@ const columns: DataTableColumns<LedgerRow> = [
         <n-select v-model:value="walletMode" clearable placeholder="Wallet 模式" :options="walletOptions" />
         <n-button tertiary @click="keyword = ''; txType = null; walletMode = null">重置</n-button>
       </div>
-      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1650" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1650" striped />
     </n-card>
   </div>
 </template>

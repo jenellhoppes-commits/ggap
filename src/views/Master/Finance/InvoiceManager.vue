@@ -19,7 +19,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { DescriptionOutlined, SearchOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type InvoiceType = 'AGENT_RECEIVABLE' | 'PROVIDER_PAYABLE'
 type InvoiceStatus = 'pending' | 'confirmed' | 'paid'
@@ -212,7 +212,7 @@ const columns: DataTableColumns<InvoiceRow> = [
       <n-data-table
         :columns="withTableSorters(columns)"
         :data="filteredRows"
-        :pagination="{ pageSize: 10 }"
+        :pagination="DEFAULT_TABLE_PAGINATION"
         striped
         :scroll-x="1380"
       />

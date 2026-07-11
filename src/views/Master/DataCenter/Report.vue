@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../utils/tableSort"
 import { ref, h, onMounted, computed, watch } from 'vue'
 import {
   NCard, NDatePicker, NButton, NRadioGroup, NRadioButton,
@@ -220,7 +220,7 @@ const handleExport = () => {
             :columns="withTableSorters(columns)"
             :data="reportData"
             :loading="loading"
-            :pagination="{ pageSize: 20 }"
+            :pagination="DEFAULT_TABLE_PAGINATION"
             class="bg-[#18181c] rounded-lg mt-4"
         />
     </div>

@@ -5,7 +5,7 @@ import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import StatusSwitch from '../../../components/Common/StatusSwitch.vue'
 import { portalGameService } from '../../../services/portal/games'
 import type { PortalGame } from '../../../services/portal/games'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface MerchantGame extends PortalGame {
   limit_group?: string
@@ -229,7 +229,7 @@ onMounted(fetchGames)
         :columns="withTableSorters(columns)"
         :data="filteredGames"
         :loading="loading"
-        :pagination="{ pageSize: 15 }"
+        :pagination="DEFAULT_TABLE_PAGINATION"
         :row-key="row => row.game_id"
         :scroll-x="1540"
         striped

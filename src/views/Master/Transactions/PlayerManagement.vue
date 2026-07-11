@@ -23,7 +23,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { AccountBalanceWalletOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { formatDisplayAmount } from '../../../utils/format'
 import { getPlayerBetLimits } from '../../../mocks/gameLimits'
 import type { PlayerBetLimit } from '../../../types/gameLimit'
@@ -497,7 +497,7 @@ const transactionColumns: DataTableColumns<PlayerTransaction> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2100"
     />
 
@@ -558,18 +558,18 @@ const transactionColumns: DataTableColumns<PlayerTransaction> = [
               <n-alert type="info" :show-icon="false" class="mb-4">
                 Launch Game 帶入 display_currency，Session 保存 exchange_rate_id；Provider 交易正式以 USDT 入帳。
               </n-alert>
-              <n-data-table :columns="withTableSorters(sessionColumns)" :data="currentRow.sessions" :pagination="false" :scroll-x="1140" />
+              <n-data-table :columns="withTableSorters(sessionColumns)" :data="currentRow.sessions" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1140" />
             </n-tab-pane>
 
             <n-tab-pane name="limits" tab="單槍限額">
               <n-alert type="info" :show-icon="false" class="mb-4">
                 套用順序：特殊會員覆寫 > 會員分層 > 商戶遊戲限額 > 遊戲預設群組。正式注單會保存當次 Session 的限額快照。
               </n-alert>
-              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limits" :pagination="false" :scroll-x="1080" />
+              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limits" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1080" />
             </n-tab-pane>
 
             <n-tab-pane name="transactions" tab="交易流水">
-              <n-data-table :columns="withTableSorters(transactionColumns)" :data="currentRow.transactions" :pagination="false" :scroll-x="1660" />
+              <n-data-table :columns="withTableSorters(transactionColumns)" :data="currentRow.transactions" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1660" />
             </n-tab-pane>
 
             <n-tab-pane name="risk" tab="風控紀錄">

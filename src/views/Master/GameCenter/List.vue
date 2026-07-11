@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import type { DataTableColumns } from 'naive-ui'
 import type { Game } from '../../../types/game'
 import GameConfigModal from './components/GameConfigModal.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { adminContentService } from '../../../services/admin/content'
 
 const message = useMessage()
@@ -160,7 +160,7 @@ onMounted(fetchGames)
       :columns="withTableSorters(columns)"
       :data="games"
       :loading="loading"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       class="rounded-lg bg-[#18181c]"
     />
 

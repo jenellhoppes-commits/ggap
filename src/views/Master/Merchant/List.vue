@@ -26,7 +26,7 @@ import type { DataTableColumns, DropdownOption } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 import type { Merchant, MerchantCurrency, MerchantStatus, MerchantWalletMode } from '../../../types/merchant'
 import { useMerchantList } from '../../../composables/useMerchantList'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import MerchantCreateDrawer from '../../../components/Merchant/MerchantCreateDrawer.vue'
 import ConfigMerchantDrawer from './components/ConfigMerchantDrawer.vue'
 import MerchantDetailDrawer from './components/MerchantDetailDrawer.vue'
@@ -471,7 +471,7 @@ const columns = computed<DataTableColumns<Merchant>>(() => [
       :columns="withTableSorters(columns)"
       :data="filteredList"
       :loading="loading"
-      :pagination="{ pageSize: 12, showSizePicker: true, pageSizes: [12, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2380"
       class="mt-4"
     />

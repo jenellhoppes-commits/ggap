@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { Merchant } from '../types/merchant'
 import { legacyService } from '../services/legacy'
+import { DEFAULT_TABLE_PAGINATION } from '../utils/tableSort'
 
 export function useMerchantList() {
     const loading = ref(false)
@@ -9,8 +10,8 @@ export function useMerchantList() {
 
     // Basic pagination state (mocked)
     const pagination = ref({
+        ...DEFAULT_TABLE_PAGINATION,
         page: 1,
-        pageSize: 20,
         itemCount: 0,
         pageCount: 1
     })
@@ -23,7 +24,7 @@ export function useMerchantList() {
             list.value = data.list
             pagination.value.itemCount = data.total
             // If backend doesn't return pageCount, calculate it
-            pagination.value.pageCount = Math.ceil(data.total / pagination.value.pageSize)
+            pagination.value.pageCount = Math.ceil(data.total / (pagination.value.pageSize ?? 10))
 
         } catch (err: any) {
             console.error('Fetch Merchant List Error:', err)

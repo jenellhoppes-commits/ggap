@@ -29,7 +29,7 @@ import {
   VisibilityOutlined
 } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { formatDisplayAmount } from '../../../utils/format'
 import { getBetLimitSnapshot } from '../../../mocks/gameLimits'
 import type { BetLimitSnapshot } from '../../../types/gameLimit'
@@ -514,7 +514,7 @@ const repairColumns: DataTableColumns<RepairRecord> = [
       :columns="withTableSorters(columns)"
       :data="filteredRows"
       :loading="loading"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :bordered="false"
       :scroll-x="2180"
       striped
@@ -604,12 +604,12 @@ const repairColumns: DataTableColumns<RepairRecord> = [
             </n-tab-pane>
 
             <n-tab-pane name="flows" tab="交易流水">
-              <n-data-table :columns="withTableSorters(flowColumns)" :data="currentRow.transaction_flows" :pagination="false" />
+              <n-data-table :columns="withTableSorters(flowColumns)" :data="currentRow.transaction_flows" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="repairs" tab="補單紀錄">
               <n-alert v-if="currentRow.repair_records.length === 0" type="success" :show-icon="false">此注單尚無補單紀錄。</n-alert>
-              <n-data-table v-else :columns="withTableSorters(repairColumns)" :data="currentRow.repair_records" :pagination="false" />
+              <n-data-table v-else :columns="withTableSorters(repairColumns)" :data="currentRow.repair_records" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">

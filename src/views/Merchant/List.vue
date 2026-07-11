@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../utils/tableSort"
 import { onMounted, h, ref, type VNode, computed } from 'vue'
 import { 
     NCard, NBreadcrumb, NBreadcrumbItem, NDataTable, 
@@ -178,7 +178,7 @@ const handleRefresh = () => {
                 :columns="withTableSorters(columns)"
                 :data="agents"
                 :loading="loading"
-                :pagination="{ pageSize: 15 }"
+                :pagination="DEFAULT_TABLE_PAGINATION"
                 class="bg-[#18181c] rounded-lg"
             />
         </n-card>

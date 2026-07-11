@@ -3,6 +3,16 @@ import { defineStore } from 'pinia'
 import { useStorage } from '@vueuse/core'
 import { ApiRequestError, apiClient } from '../services/apiClient'
 import { shouldUseDemoData } from '../config/runtime'
+import {
+  canAccessPortal as canAccessPortalPermission,
+  canAccessRole as canAccessRolePermission,
+  defaultPathByPortal,
+  loginPathByPortal,
+  resolveDataScopeByRole,
+  resolvePortalByRole,
+  roleDataScopeMap,
+  rolePortalMap
+} from '../config/permissions'
 
 export type Portal = 'admin' | 'agent' | 'merchant'
 export type UserRole = 'MASTER' | 'AGENT' | 'MERCHANT'
@@ -42,19 +52,33 @@ interface LoginApiResponse {
   merchant_code?: string
 }
 
-const rolePortalMap: Record<UserRole, Portal> = {
-  MASTER: 'admin',
-  AGENT: 'agent',
-  MERCHANT: 'merchant'
+const userInfoSerializer = {
+  read: (raw: string): UserInfo | null => {
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw) as Partial<UserInfo> | null
+      if (!parsed?.role) return null
+      const role = parsed.role
+      return {
+        id: parsed.id || parsed.account || role,
+        name: parsed.name || parsed.account || role,
+        account: parsed.account || '',
+        role,
+        portal: parsed.portal || resolvePortalByRole(role),
+        dataScope: parsed.dataScope || resolveDataScopeByRole(role),
+        agentId: parsed.agentId,
+        agentLevel: parsed.agentLevel,
+        merchantId: parsed.merchantId,
+        merchantCode: parsed.merchantCode
+      }
+    } catch {
+      return null
+    }
+  },
+  write: (value: UserInfo | null) => JSON.stringify(value)
 }
 
-const roleDataScopeMap: Record<UserRole, DataScope> = {
-  MASTER: 'global',
-  AGENT: 'agent_tree',
-  MERCHANT: 'merchant_self'
-}
-
-const wrongPortalMessage = '帳號角色與目前登入入口不符，請切換到正確入口。'
+const wrongPortalMessage = '請使用對應入口登入，此帳號不屬於目前入口。'
 const invalidLoginMessage = '帳號或密碼錯誤，請重新確認。'
 const loginFailedMessage = '登入失敗，請稍後再試。'
 
@@ -130,22 +154,12 @@ const createDemoLoginResponse = (username: string, password: string, expectedPor
   }
 }
 
-export const defaultPathByPortal: Record<Portal, string> = {
-  admin: '/admin/dashboard',
-  agent: '/agent/dashboard',
-  merchant: '/merchant/dashboard'
-}
-
-export const loginPathByPortal: Record<Portal, string> = {
-  admin: '/admin/login',
-  agent: '/agent/login',
-  merchant: '/merchant/login'
-}
+export { defaultPathByPortal, loginPathByPortal }
 
 export const useAuthStore = defineStore('auth', () => {
   const token = useStorage<string | null>('auth_token', null)
   const userRole = useStorage<UserRole | null>('auth_role', null)
-  const userInfo = useStorage<UserInfo | null>('auth_user', null)
+  const userInfo = useStorage<UserInfo | null>('auth_user', null, undefined, { serializer: userInfoSerializer })
 
   const isAuthenticated = computed(() => !!token.value && !!userRole.value && !!userInfo.value)
   const portal = computed<Portal | null>(() => userInfo.value?.portal ?? (userRole.value ? rolePortalMap[userRole.value] : null))
@@ -205,14 +219,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   const canAccessPortal = (requiredPortal?: Portal) => {
     if (!isAuthenticated.value) return false
-    if (!requiredPortal) return true
-    return portal.value === requiredPortal
+    return canAccessPortalPermission(portal.value, requiredPortal)
   }
 
   const canAccessRole = (allowedRoles?: UserRole[]) => {
     if (!isAuthenticated.value || !userRole.value) return false
-    if (!allowedRoles || allowedRoles.length === 0) return true
-    return allowedRoles.includes(userRole.value)
+    return canAccessRolePermission(userRole.value, allowedRoles)
   }
 
   return {

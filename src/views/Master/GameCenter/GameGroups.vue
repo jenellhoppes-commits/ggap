@@ -26,7 +26,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { AddOutlined, ContentCopyOutlined, EditOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type GroupType = 'system' | 'provider' | 'category' | 'merchant' | 'campaign'
 type GroupStatus = 'active' | 'disabled' | 'draft'
@@ -420,7 +420,7 @@ const merchantColumns: DataTableColumns<AppliedMerchant> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :bordered="false"
       :scroll-x="1360"
       striped
@@ -459,18 +459,18 @@ const merchantColumns: DataTableColumns<AppliedMerchant> = [
             </n-tab-pane>
 
             <n-tab-pane name="games" tab="遊戲清單">
-              <n-data-table :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="false" />
+              <n-data-table :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="merchants" tab="套用商戶">
-              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentRow.merchants" :pagination="false" />
+              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentRow.merchants" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="sorting" tab="排序設定">
               <n-alert type="info" :show-icon="false">
                 排序只影響商戶後台與前台展示，不改變 Provider API 或交易流程。
               </n-alert>
-              <n-data-table class="mt-4" :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="false" />
+              <n-data-table class="mt-4" :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">

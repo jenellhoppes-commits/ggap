@@ -45,6 +45,16 @@ const collapsedMark = computed(() => isAgentPortal.value ? 'A' : 'M')
 const menuOptions = computed<MenuOption[]>(() => isAgentPortal.value ? agentMenuOptions() : merchantMenuOptions())
 const activeKey = computed(() => currentRoute.name as string)
 
+const flattenMenuOptions = (options: MenuOption[]): MenuOption[] => {
+  return options.flatMap(option => {
+    const children = option.children as MenuOption[] | undefined
+    if (option.type === 'group' && children?.length) return flattenMenuOptions(children)
+    return [{ ...option, children: undefined }]
+  })
+}
+
+const visibleMenuOptions = computed(() => collapsed.value ? flattenMenuOptions(menuOptions.value) : menuOptions.value)
+
 const handleLogout = () => {
   authStore.logout()
   router.push(isAgentPortal.value ? '/agent/login' : '/merchant/login')
@@ -73,7 +83,6 @@ const themeOverrides: GlobalThemeOverrides = {
         :collapsed-width="64"
         :width="240"
         :collapsed="collapsed"
-        show-trigger="bar"
         @collapse="collapsed = true"
         @expand="collapsed = false"
       >
@@ -84,10 +93,12 @@ const themeOverrides: GlobalThemeOverrides = {
           </span>
         </div>
         <n-menu
+          class="portal-menu"
+          :class="{ 'portal-menu--icon-only': collapsed }"
           :collapsed="collapsed"
           :collapsed-width="64"
           :collapsed-icon-size="22"
-          :options="menuOptions"
+          :options="visibleMenuOptions"
           :value="activeKey"
           :inverted="true"
         />
@@ -107,7 +118,7 @@ const themeOverrides: GlobalThemeOverrides = {
         </n-drawer-content>
       </n-drawer>
 
-      <n-layout>
+      <n-layout class="min-w-0">
         <n-layout-header bordered class="flex min-h-16 flex-wrap items-center justify-between gap-3 bg-[#18181c] px-4 py-3 md:h-16 md:flex-nowrap md:px-6 md:py-0">
           <div class="flex min-w-0 items-center">
             <n-button quaternary circle @click="isMobile ? showMobileMenu = true : collapsed = !collapsed">
@@ -140,7 +151,7 @@ const themeOverrides: GlobalThemeOverrides = {
           </div>
         </n-layout-header>
 
-        <n-layout-content class="min-h-[85vh] overflow-auto bg-[#101014] p-4 md:p-6">
+        <n-layout-content class="min-h-[85vh] min-w-0 overflow-auto bg-[#101014] p-4 md:p-6">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />
@@ -174,5 +185,26 @@ const themeOverrides: GlobalThemeOverrides = {
 .portal-shell :deep(.n-scrollbar-container::-webkit-scrollbar-thumb) {
   border-radius: 999px;
   background: #2f3037;
+}
+
+.portal-shell :deep(.n-layout-scroll-container::-webkit-scrollbar-track),
+.portal-shell :deep(.n-scrollbar-container::-webkit-scrollbar-track) {
+  background: #101014;
+}
+
+.portal-menu--icon-only :deep(.n-menu-item-content) {
+  width: 64px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  justify-content: center;
+}
+
+.portal-menu--icon-only :deep(.n-menu-item-content__icon) {
+  margin-right: 0 !important;
+}
+
+.portal-menu--icon-only :deep(.n-menu-item-content-header),
+.portal-menu--icon-only :deep(.n-menu-item-content__arrow) {
+  display: none !important;
 }
 </style>

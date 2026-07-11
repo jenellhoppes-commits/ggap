@@ -2,7 +2,7 @@
 import { computed, h, ref } from 'vue'
 import { NButton, NCard, NDataTable, NGrid, NGridItem, NInput, NSelect, NStatistic, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface PlayerRow {
   player_id: string
@@ -96,7 +96,7 @@ const columns: DataTableColumns<PlayerRow> = [
         <n-select v-model:value="walletMode" clearable placeholder="Wallet 模式" :options="['Seamless', 'Transfer'].map(value => ({ label: value, value }))" />
         <n-button tertiary @click="keyword = ''; currency = null; walletMode = null">重置</n-button>
       </div>
-      <n-data-table :columns="withTableSorters(columns)" :data="filteredPlayers" :pagination="{ pageSize: 10 }" :scroll-x="1450" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="filteredPlayers" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1450" striped />
     </n-card>
   </div>
 </template>

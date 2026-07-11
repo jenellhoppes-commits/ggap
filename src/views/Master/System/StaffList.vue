@@ -24,7 +24,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { EditOutlined, LockResetOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type StaffStatus = 'active' | 'disabled' | 'locked'
 
@@ -334,7 +334,7 @@ const columns: DataTableColumns<StaffRow> = [
       </div>
     </div>
 
-    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1500" />
+    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1500" />
 
     <n-modal v-model:show="showEditor" preset="card" :title="editorMode === 'create' ? '新增人員' : '編輯人員'" style="width: min(640px, 92vw);">
       <n-form label-placement="left" label-width="110">

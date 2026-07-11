@@ -22,7 +22,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { AddOutlined, SearchOutlined, SettingsOutlined, SportsEsportsOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type ProviderStatus = 'active' | 'maintenance' | 'disabled'
 type ApiStatus = 'connected' | 'testing' | 'disabled'
@@ -372,7 +372,7 @@ const rateColumns: DataTableColumns<ProviderCostRate> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="1715"
     />
 
@@ -420,11 +420,11 @@ const rateColumns: DataTableColumns<ProviderCostRate> = [
             </n-tab-pane>
 
             <n-tab-pane name="rates" tab="成本費率">
-              <n-data-table :columns="withTableSorters(rateColumns)" :data="currentRow.rates" :pagination="false" :scroll-x="900" />
+              <n-data-table :columns="withTableSorters(rateColumns)" :data="currentRow.rates" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="900" />
             </n-tab-pane>
 
             <n-tab-pane name="games" tab="遊戲清單">
-              <n-data-table :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="false" :scroll-x="620" />
+              <n-data-table :columns="withTableSorters(gameColumns)" :data="currentRow.games" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="620" />
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">

@@ -22,7 +22,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { ContentCopyOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type OwnerType = '商戶' | '代理' | '平台'
 type KeyStatus = 'active' | 'rotating' | 'disabled'
@@ -356,7 +356,7 @@ const webhookColumns: DataTableColumns<WebhookLog> = [
               <h2 class="text-lg font-semibold">Endpoint 清單</h2>
               <p class="mt-1 text-sm text-gray-500">Provider 串接統一 USDT；display_currency 只作前台顯示、營運與報表參考。</p>
             </div>
-            <n-data-table :columns="withTableSorters(endpointColumns)" :data="apiEndpoints" :pagination="false" :scroll-x="1280" />
+            <n-data-table :columns="withTableSorters(endpointColumns)" :data="apiEndpoints" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1280" />
           </section>
 
           <section class="space-y-3">
@@ -401,7 +401,7 @@ const webhookColumns: DataTableColumns<WebhookLog> = [
               <h2 class="text-lg font-semibold">錯誤碼</h2>
               <p class="mt-1 text-sm text-gray-500">Provider timeout、Callback failed、餘額不足與匯率未鎖定等錯誤，後續可導向補單或維運流程。</p>
             </div>
-            <n-data-table :columns="withTableSorters(errorColumns)" :data="errorCodes" :pagination="false" :scroll-x="720" />
+            <n-data-table :columns="withTableSorters(errorColumns)" :data="errorCodes" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="720" />
           </section>
         </div>
       </n-tab-pane>
@@ -416,11 +416,11 @@ const webhookColumns: DataTableColumns<WebhookLog> = [
             <n-button secondary class="xl:col-span-1" @click="resetFilters">重置</n-button>
           </div>
         </div>
-        <n-data-table :columns="withTableSorters(keyColumns)" :data="filteredKeys" :pagination="{ pageSize: 10 }" :scroll-x="1300" />
+        <n-data-table :columns="withTableSorters(keyColumns)" :data="filteredKeys" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1300" />
       </n-tab-pane>
 
       <n-tab-pane name="webhooks" tab="Webhook Log">
-        <n-data-table :columns="withTableSorters(webhookColumns)" :data="webhookLogs" :pagination="false" :scroll-x="980" />
+        <n-data-table :columns="withTableSorters(webhookColumns)" :data="webhookLogs" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="980" />
       </n-tab-pane>
     </n-tabs>
 

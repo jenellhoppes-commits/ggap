@@ -23,7 +23,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { BuildOutlined, ReplayOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type RepairType = 'Callback Failed' | 'Provider Pending' | 'Ledger Failed' | 'Amount Mismatch' | 'Rollback Required'
 type RepairStatus = 'new' | 'processing' | 'waiting' | 'done' | 'failed' | 'manual_review'
@@ -462,7 +462,7 @@ const logColumns: DataTableColumns<RepairLog> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2460"
     />
 
@@ -513,7 +513,7 @@ const logColumns: DataTableColumns<RepairLog> = [
             </n-tab-pane>
 
             <n-tab-pane name="steps" tab="修復步驟">
-              <n-data-table :columns="withTableSorters(stepColumns)" :data="currentRow.steps" :pagination="false" :scroll-x="1170" />
+              <n-data-table :columns="withTableSorters(stepColumns)" :data="currentRow.steps" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1170" />
             </n-tab-pane>
 
             <n-tab-pane name="timeline" tab="時間軸">
@@ -526,7 +526,7 @@ const logColumns: DataTableColumns<RepairLog> = [
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">
-              <n-data-table :columns="withTableSorters(logColumns)" :data="currentRow.logs" :pagination="false" />
+              <n-data-table :columns="withTableSorters(logColumns)" :data="currentRow.logs" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
           </n-tabs>
         </template>

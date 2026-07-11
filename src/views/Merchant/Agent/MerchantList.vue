@@ -18,7 +18,7 @@ import MerchantCreateDrawer from '../../../components/Merchant/MerchantCreateDra
 import { portalMerchantService } from '../../../services/portal/merchants'
 import type { AgentMerchantRow } from '../../../services/portal/merchants'
 import type { Merchant } from '../../../types/merchant'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 const message = useMessage()
 
@@ -162,7 +162,7 @@ const columns: DataTableColumns<AgentMerchantRow> = [
         :loading="loading"
         :columns="withTableSorters(columns)"
         :data="filteredRows"
-        :pagination="{ pageSize: 10 }"
+        :pagination="DEFAULT_TABLE_PAGINATION"
         :scroll-x="1760"
         striped
       />

@@ -2,7 +2,7 @@
 import { h } from 'vue'
 import { NButton, NCard, NDataTable, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface CallbackLogRow {
   callback_id: string
@@ -59,7 +59,7 @@ const columns: DataTableColumns<CallbackLogRow> = [
     </header>
 
     <n-card>
-      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="{ pageSize: 10 }" :scroll-x="1220" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1220" striped />
     </n-card>
   </div>
 </template>

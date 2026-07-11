@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="fund-management p-6">
         <h1 class="text-2xl font-bold mb-6 flex items-center gap-2">
             <span>Fund</span> {{ t('merchant.fundRecord.title') }}
@@ -95,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -120,7 +120,7 @@ const creditAmount = ref(0)
 const creditReason = ref('')
 const submitting = ref(false)
 
-const pagination = { pageSize: 10 }
+const pagination = DEFAULT_TABLE_PAGINATION
 
 type TagType = 'success' | 'info' | 'warning' | 'error' | 'default' | 'primary'
 

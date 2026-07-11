@@ -2,7 +2,7 @@
 import { computed, h, ref } from 'vue'
 import { NAlert, NButton, NCard, NDataTable, NGrid, NGridItem, NInput, NSelect, NStatistic, NTag, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface SubAgentRow {
   agent_id: string
@@ -105,7 +105,7 @@ const columns: DataTableColumns<SubAgentRow> = [
         <n-select v-model:value="level" clearable placeholder="代理層級" :options="[{ label: 'L2', value: 'L2' }, { label: 'L3', value: 'L3' }]" />
         <n-button tertiary @click="keyword = ''; level = null">重置</n-button>
       </div>
-      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1480" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1480" striped />
     </n-card>
   </div>
 </template>

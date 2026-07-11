@@ -13,7 +13,7 @@ import {
 } from '@vicons/material'
 
 const renderIcon = (icon: Component) => () => h(NIcon, null, { default: () => h(icon) })
-const renderLink = (to: string, label: string) => () => h(RouterLink, { to }, { default: () => label })
+const renderLink = (to: string, label: string) => () => h(RouterLink, { to, title: label }, { default: () => label })
 
 export const agentMenuOptions = (): MenuOption[] => [
   {

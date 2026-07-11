@@ -29,7 +29,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { AddOutlined, ContentCopyOutlined, EditOutlined, SearchOutlined, SettingsOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type GameType = 'Slot' | 'Baccarat' | 'Table' | 'Fish' | 'Arcade'
 type GroupLevel = 'GENERAL' | 'HIGH' | 'VIP'
@@ -702,7 +702,7 @@ const snapshotColumns: DataTableColumns<SessionSnapshot> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :bordered="false"
       :scroll-x="1925"
       striped
@@ -748,44 +748,44 @@ const snapshotColumns: DataTableColumns<SessionSnapshot> = [
               <n-alert type="info" :show-icon="false" class="mb-4">
                 每個 display_currency 都必須獨立設定 min / max / step / default / 小數位；匯率只用於換算 USDT 檢查值，不反向推導正式下注區間。
               </n-alert>
-              <n-data-table :columns="withTableSorters(currencyColumns)" :data="currentRow.currency_limits" :pagination="false" :scroll-x="1390" />
+              <n-data-table :columns="withTableSorters(currencyColumns)" :data="currentRow.currency_limits" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1390" />
             </n-tab-pane>
 
             <n-tab-pane name="provider" tab="Provider 對應">
-              <n-data-table :columns="withTableSorters(providerColumns)" :data="currentRow.provider_mappings" :pagination="false" :scroll-x="1180" />
+              <n-data-table :columns="withTableSorters(providerColumns)" :data="currentRow.provider_mappings" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1180" />
             </n-tab-pane>
 
             <n-tab-pane name="games" tab="遊戲綁定">
-              <n-data-table :columns="withTableSorters(gameBindingColumns)" :data="currentRow.game_bindings" :pagination="false" :scroll-x="780" />
+              <n-data-table :columns="withTableSorters(gameBindingColumns)" :data="currentRow.game_bindings" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="780" />
             </n-tab-pane>
 
             <n-tab-pane name="agents" tab="代理開放">
               <n-alert type="warning" :show-icon="false" class="mb-4">
                 代理只取得平台開放的單槍群組，不能自行建立超過上層範圍的限額。
               </n-alert>
-              <n-data-table :columns="withTableSorters(accessColumns)" :data="currentRow.agent_access" :pagination="false" :scroll-x="900" />
+              <n-data-table :columns="withTableSorters(accessColumns)" :data="currentRow.agent_access" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="900" />
             </n-tab-pane>
 
             <n-tab-pane name="merchants" tab="商戶套用">
-              <n-data-table :columns="withTableSorters(accessColumns)" :data="currentRow.merchant_access" :pagination="false" :scroll-x="900" />
+              <n-data-table :columns="withTableSorters(accessColumns)" :data="currentRow.merchant_access" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="900" />
             </n-tab-pane>
 
             <n-tab-pane name="tiers" tab="會員分層">
-              <n-data-table :columns="withTableSorters(tierColumns)" :data="currentRow.player_tiers" :pagination="false" :scroll-x="820" />
+              <n-data-table :columns="withTableSorters(tierColumns)" :data="currentRow.player_tiers" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="820" />
             </n-tab-pane>
 
             <n-tab-pane name="overrides" tab="特殊會員覆寫">
               <n-alert type="warning" :show-icon="false" class="mb-4">
                 提高最高下注、設定特殊會員覆寫與開放 VIP 群組皆屬高風險操作，需輸入原因並寫入操作紀錄。
               </n-alert>
-              <n-data-table :columns="withTableSorters(overrideColumns)" :data="currentRow.player_overrides" :pagination="false" :scroll-x="1320" />
+              <n-data-table :columns="withTableSorters(overrideColumns)" :data="currentRow.player_overrides" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1320" />
             </n-tab-pane>
 
             <n-tab-pane name="snapshots" tab="限額快照">
               <n-alert type="info" :show-icon="false" class="mb-4">
                 Launch Game 時建立 Session 單槍快照；同一 Session 內不受後續匯率、限額或代理 / 商戶設定異動影響。
               </n-alert>
-              <n-data-table :columns="withTableSorters(snapshotColumns)" :data="currentRow.snapshots" :pagination="false" :scroll-x="1400" />
+              <n-data-table :columns="withTableSorters(snapshotColumns)" :data="currentRow.snapshots" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1400" />
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">

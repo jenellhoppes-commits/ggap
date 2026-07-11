@@ -23,7 +23,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { AssessmentOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type MarginStatus = 'preview' | 'ready' | 'locked'
 
@@ -411,7 +411,7 @@ const detailColumns: DataTableColumns<MarginDetail> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="1980"
     />
 
@@ -468,11 +468,11 @@ const detailColumns: DataTableColumns<MarginDetail> = [
             </n-tab-pane>
 
             <n-tab-pane name="sources" tab="來源拆解">
-              <n-data-table :columns="withTableSorters(sourceColumns)" :data="currentRow.sources" :pagination="false" :scroll-x="980" />
+              <n-data-table :columns="withTableSorters(sourceColumns)" :data="currentRow.sources" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="980" />
             </n-tab-pane>
 
             <n-tab-pane name="details" tab="商戶明細">
-              <n-data-table :columns="withTableSorters(detailColumns)" :data="currentRow.details" :pagination="false" :scroll-x="1260" />
+              <n-data-table :columns="withTableSorters(detailColumns)" :data="currentRow.details" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1260" />
             </n-tab-pane>
 
             <n-tab-pane name="boundary" tab="帳務邊界">

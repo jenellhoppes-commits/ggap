@@ -26,7 +26,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { ReceiptLongOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type AccountingStatus = 'draft' | 'matched' | 'difference' | 'locked'
 type InvoiceStatus = 'none' | 'pending' | 'confirmed' | 'voided'
@@ -587,7 +587,7 @@ const paymentColumns: DataTableColumns<ProviderPayment> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="1760"
     />
 
@@ -644,7 +644,7 @@ const paymentColumns: DataTableColumns<ProviderPayment> = [
             </n-tab-pane>
 
             <n-tab-pane name="reconcile" tab="對帳明細">
-              <n-data-table :columns="withTableSorters(reconcileColumns)" :data="currentRow.reconcile_items" :pagination="false" :scroll-x="1100" />
+              <n-data-table :columns="withTableSorters(reconcileColumns)" :data="currentRow.reconcile_items" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1100" />
             </n-tab-pane>
 
             <n-tab-pane name="invoice" tab="帳單">
@@ -684,7 +684,7 @@ const paymentColumns: DataTableColumns<ProviderPayment> = [
                   <n-button type="primary" class="w-full" @click="registerPayment(currentRow)">登記付款</n-button>
                 </n-form-item>
               </div>
-              <n-data-table :columns="withTableSorters(paymentColumns)" :data="currentRow.payments" :pagination="false" />
+              <n-data-table :columns="withTableSorters(paymentColumns)" :data="currentRow.payments" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="boundary" tab="帳務邊界">

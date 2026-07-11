@@ -26,7 +26,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { EditOutlined, PlayArrowOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type RiskType = 'member' | 'bet' | 'transaction' | 'merchant' | 'agent' | 'api' | 'device'
 type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
@@ -436,7 +436,7 @@ const columns: DataTableColumns<RiskRule> = [
       </div>
     </div>
 
-    <n-data-table :columns="withTableSorters(columns)" :data="filteredRules" :pagination="{ pageSize: 10 }" :scroll-x="1640" />
+    <n-data-table :columns="withTableSorters(columns)" :data="filteredRules" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1640" />
 
     <n-drawer v-model:show="showDetail" width="min(980px, 100vw)">
       <n-drawer-content closable>
@@ -471,7 +471,7 @@ const columns: DataTableColumns<RiskRule> = [
               </n-descriptions>
             </n-tab-pane>
             <n-tab-pane name="hits" tab="命中紀錄">
-              <n-data-table :columns="withTableSorters(hitColumns)" :data="currentRule.hits" :pagination="false" />
+              <n-data-table :columns="withTableSorters(hitColumns)" :data="currentRule.hits" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
             <n-tab-pane name="logs" tab="操作紀錄">
               <n-timeline>

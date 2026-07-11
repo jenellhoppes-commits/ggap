@@ -26,7 +26,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { ReplayOutlined, SearchOutlined, SettingsOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { formatDisplayAmount } from '../../../utils/format'
 import { getGameLimitGroups } from '../../../mocks/gameLimits'
 import type { GameBetLimitGroup } from '../../../types/gameLimit'
@@ -531,7 +531,7 @@ const limitColumns: DataTableColumns<GameBetLimitGroup> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :bordered="false"
       :scroll-x="1770"
     />
@@ -591,11 +591,11 @@ const limitColumns: DataTableColumns<GameBetLimitGroup> = [
               <n-alert type="info" :show-icon="false" class="mb-3">
                 Provider 預設會開放最高投注區間，平台再依遊戲、商戶與特殊會員套用單次下注區間；正式交易會保存 Session 限額快照。
               </n-alert>
-              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limit_groups" :pagination="false" :scroll-x="1120" />
+              <n-data-table :columns="withTableSorters(limitColumns)" :data="currentRow.bet_limit_groups" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1120" />
             </n-tab-pane>
 
             <n-tab-pane name="auth" tab="商戶授權">
-              <n-data-table :columns="withTableSorters(authColumns)" :data="currentRow.authorizations" :pagination="false" />
+              <n-data-table :columns="withTableSorters(authColumns)" :data="currentRow.authorizations" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="maintenance" tab="維護設定">

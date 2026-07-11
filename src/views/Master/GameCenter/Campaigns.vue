@@ -27,7 +27,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { AddOutlined, ContentCopyOutlined, EditOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type CampaignType = 'jackpot' | 'free_spin' | 'tournament' | 'mission' | 'display'
 type CampaignStatus = 'draft' | 'pending' | 'running' | 'paused' | 'ended' | 'disabled'
@@ -572,7 +572,7 @@ const rewardColumns: DataTableColumns<RewardSetting> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :bordered="false"
       :scroll-x="1680"
       striped
@@ -615,15 +615,15 @@ const rewardColumns: DataTableColumns<RewardSetting> = [
             </n-tab-pane>
 
             <n-tab-pane name="groups" tab="套用分組">
-              <n-data-table :columns="withTableSorters(groupColumns)" :data="currentRow.groups" :pagination="false" />
+              <n-data-table :columns="withTableSorters(groupColumns)" :data="currentRow.groups" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="merchants" tab="套用商戶">
-              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentRow.merchants" :pagination="false" />
+              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentRow.merchants" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="reward" tab="獎勵設定">
-              <n-data-table :columns="withTableSorters(rewardColumns)" :data="currentRow.reward_settings" :pagination="false" />
+              <n-data-table :columns="withTableSorters(rewardColumns)" :data="currentRow.reward_settings" :pagination="DEFAULT_TABLE_PAGINATION" />
               <n-alert type="warning" :show-icon="false" class="mt-4">
                 MVP 僅展示活動獎勵設定與發放統計；實際派發與風控規則需由後端服務落地。
               </n-alert>

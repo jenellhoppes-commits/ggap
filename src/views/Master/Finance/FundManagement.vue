@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../utils/tableSort"
 import { ref, reactive, onMounted, h, computed } from 'vue'
 import { 
     NCard, NSpace, NInput, NSelect, NButton, NDataTable, NTag,
@@ -236,7 +236,7 @@ onMounted(() => {
                     :columns="withTableSorters(columns)"
                     :data="list"
                     :loading="loading"
-                    :pagination="{ pageSize: 10 }"
+                    :pagination="DEFAULT_TABLE_PAGINATION"
                     scroll-x="1000"
                 />
             </NSpace>

@@ -21,7 +21,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { AssignmentTurnedInOutlined, BuildOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type AlertSource = 'api_gateway' | 'wallet_router' | 'provider_adapter' | 'callback' | 'settlement' | 'fx_rate' | 'transfer_ledger' | 'admin_portal' | 'queue'
 type AlertLevel = 'info' | 'warning' | 'critical'
@@ -383,7 +383,7 @@ const columns: DataTableColumns<AlertRow> = [
       </div>
     </div>
 
-    <n-data-table :columns="withTableSorters(columns)" :data="filteredAlerts" :pagination="{ pageSize: 10 }" :scroll-x="1760" />
+    <n-data-table :columns="withTableSorters(columns)" :data="filteredAlerts" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1760" />
 
     <n-drawer v-model:show="showDetail" width="min(980px, 100vw)">
       <n-drawer-content closable>
@@ -414,7 +414,7 @@ const columns: DataTableColumns<AlertRow> = [
               <n-data-table
                 :columns="withTableSorters(sampleColumns)"
                 :data="currentAlert.samples"
-                :pagination="false"
+                :pagination="DEFAULT_TABLE_PAGINATION"
               />
             </div>
             <div class="rounded border border-white/10 bg-[#202026] p-4">

@@ -21,7 +21,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type AdjustmentStatus = 'draft' | 'pending' | 'approved' | 'posted' | 'rejected'
 type TargetType = 'AGENT' | 'PROVIDER' | 'PLATFORM'
@@ -377,7 +377,7 @@ const columns: DataTableColumns<AdjustmentRecord> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="1420"
     />
 

@@ -25,7 +25,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type RateStatus = 'published' | 'confirmed' | 'locked' | 'warning' | 'failed'
 
@@ -430,7 +430,7 @@ const columns: DataTableColumns<ExchangeRateRow> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10 }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="1540"
     />
 
@@ -476,7 +476,7 @@ const columns: DataTableColumns<ExchangeRateRow> = [
               <n-alert type="info" :show-icon="false" class="mb-4">
                 交易快照是日結與流水追溯依據；正式財務仍由代理帳務、供應商帳務與平台毛利各自彙總。
               </n-alert>
-              <n-data-table :columns="withTableSorters(snapshotColumns)" :data="currentRow.snapshots" :pagination="false" :scroll-x="860" />
+              <n-data-table :columns="withTableSorters(snapshotColumns)" :data="currentRow.snapshots" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="860" />
             </n-tab-pane>
 
             <n-tab-pane name="logs" tab="操作紀錄">

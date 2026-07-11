@@ -2,7 +2,7 @@
 import { h } from 'vue'
 import { NCard, NDataTable, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface ApiDocRow {
   name: string
@@ -44,7 +44,7 @@ const columns: DataTableColumns<ApiDocRow> = [
     </header>
 
     <n-card>
-      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="false" :scroll-x="900" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="900" striped />
     </n-card>
   </div>
 </template>

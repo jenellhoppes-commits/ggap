@@ -2,6 +2,7 @@
 import { h } from 'vue'
 import { NCard, NDataTable, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface Row {
   merchant_id: string
@@ -20,17 +21,16 @@ const rows: Row[] = [
 ]
 
 const columns: DataTableColumns<Row> = [
-  { title: '商戶代碼', key: 'merchant_id', sorter: 'default', render: (row) => h('span', { class: 'font-mono text-cyan-300' }, row.merchant_id) },
-  { title: '商戶名稱', key: 'merchant_name', sorter: 'default' },
-  { title: '顯示幣別', key: 'display_currency', width: 110, sorter: 'default' },
-  { title: '投注額', key: 'total_bet', align: 'right', sorter: (a, b) => a.total_bet - b.total_bet, render: (row) => `USDT ${row.total_bet.toLocaleString()}` },
-  { title: '結算 GGR', key: 'settlement_ggr', align: 'right', sorter: (a, b) => a.settlement_ggr - b.settlement_ggr, render: (row) => `USDT ${row.settlement_ggr.toLocaleString()}` },
-  { title: '代理應收', key: 'receivable', align: 'right', sorter: (a, b) => a.receivable - b.receivable, render: (row) => `USDT ${row.receivable.toLocaleString()}` },
+  { title: '商戶代碼', key: 'merchant_id', render: (row) => h('span', { class: 'font-mono text-cyan-300' }, row.merchant_id) },
+  { title: '商戶名稱', key: 'merchant_name' },
+  { title: '顯示幣別', key: 'display_currency', width: 110 },
+  { title: '總投注額', key: 'total_bet', align: 'right', render: (row) => `USDT ${row.total_bet.toLocaleString()}` },
+  { title: '結算 GGR', key: 'settlement_ggr', align: 'right', render: (row) => `USDT ${row.settlement_ggr.toLocaleString()}` },
+  { title: '代理應收', key: 'receivable', align: 'right', render: (row) => `USDT ${row.receivable.toLocaleString()}` },
   {
     title: '狀態',
     key: 'status',
     width: 100,
-    sorter: 'default',
     render: (row) => h(NTag, { type: row.status === 'normal' ? 'success' : 'warning', size: 'small', bordered: false }, { default: () => row.status === 'normal' ? '正常' : '觀察' })
   }
 ]
@@ -40,11 +40,11 @@ const columns: DataTableColumns<Row> = [
   <div class="space-y-6">
     <header>
       <h1 class="text-2xl font-bold text-white">商戶報表</h1>
-      <p class="mt-2 text-sm text-gray-500">代理依商戶查看投注、GGR 與商戶結算應收。</p>
+      <p class="mt-2 text-sm text-gray-500">查看代理底下商戶的投注額、結算 GGR 與代理應收明細。</p>
     </header>
 
     <n-card>
-      <n-data-table :columns="columns" :data="rows" :pagination="{ pageSize: 10 }" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="rows" :pagination="DEFAULT_TABLE_PAGINATION" striped />
     </n-card>
   </div>
 </template>

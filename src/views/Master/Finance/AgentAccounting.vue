@@ -26,7 +26,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { ReceiptLongOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type SettlementStatus = 'draft' | 'ready' | 'difference' | 'locked'
 type InvoiceStatus = 'none' | 'pending' | 'confirmed' | 'voided'
@@ -596,7 +596,7 @@ const receiptColumns: DataTableColumns<AgentReceipt> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredRows"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2580"
     />
 
@@ -669,21 +669,21 @@ const receiptColumns: DataTableColumns<AgentReceipt> = [
             </n-tab-pane>
 
             <n-tab-pane name="daily" tab="日結明細">
-              <n-data-table :columns="withTableSorters(detailColumns)" :data="currentRow.details" :pagination="false" :scroll-x="1260" />
+              <n-data-table :columns="withTableSorters(detailColumns)" :data="currentRow.details" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1260" />
             </n-tab-pane>
 
             <n-tab-pane name="sub-agents" tab="下級代理結算">
               <n-alert type="info" :show-icon="false" class="mb-4">
                 下級代理結算用來計算代理樹內部應付與層級毛利，不會建立 GGAP 對 L2 / L3 的正式應收帳。
               </n-alert>
-              <n-data-table :columns="withTableSorters(subAgentColumns)" :data="currentRow.sub_agent_settlements" :pagination="false" :scroll-x="1420" />
+              <n-data-table :columns="withTableSorters(subAgentColumns)" :data="currentRow.sub_agent_settlements" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1420" />
             </n-tab-pane>
 
             <n-tab-pane name="merchants" tab="商戶結算">
               <n-alert type="warning" :show-icon="false" class="mb-4">
                 商戶結算為代理向商戶收款的計算參考，由代理帳務保存明細；GGAP 不直接對商戶開立正式應收帳。
               </n-alert>
-              <n-data-table :columns="withTableSorters(merchantSettlementColumns)" :data="currentRow.merchant_settlements" :pagination="false" :scroll-x="1580" />
+              <n-data-table :columns="withTableSorters(merchantSettlementColumns)" :data="currentRow.merchant_settlements" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1580" />
             </n-tab-pane>
 
             <n-tab-pane name="invoice" tab="帳單">
@@ -720,7 +720,7 @@ const receiptColumns: DataTableColumns<AgentReceipt> = [
                   <n-button type="primary" class="w-full" @click="registerReceipt(currentRow)">登記收款</n-button>
                 </n-form-item>
               </div>
-              <n-data-table :columns="withTableSorters(receiptColumns)" :data="currentRow.receipts" :pagination="false" />
+              <n-data-table :columns="withTableSorters(receiptColumns)" :data="currentRow.receipts" :pagination="DEFAULT_TABLE_PAGINATION" />
             </n-tab-pane>
 
             <n-tab-pane name="boundary" tab="帳務邊界">

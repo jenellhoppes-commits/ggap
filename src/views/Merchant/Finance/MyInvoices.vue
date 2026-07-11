@@ -3,7 +3,7 @@ import { computed, h } from 'vue'
 import { useRoute } from 'vue-router'
 import { NAlert, NButton, NCard, NDataTable, NGrid, NGridItem, NStatistic, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface AgentInvoiceRow {
   invoice_id: string
@@ -113,7 +113,7 @@ const merchantColumns: DataTableColumns<MerchantAccountingRow> = [
       </n-grid>
 
       <n-card title="平台帳單">
-        <n-data-table :columns="withTableSorters(agentColumns)" :data="agentRows" :pagination="{ pageSize: 10 }" :scroll-x="1180" striped />
+        <n-data-table :columns="withTableSorters(agentColumns)" :data="agentRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1180" striped />
       </n-card>
     </template>
 
@@ -126,7 +126,7 @@ const merchantColumns: DataTableColumns<MerchantAccountingRow> = [
       </n-grid>
 
       <n-card title="交易日結摘要">
-        <n-data-table :columns="withTableSorters(merchantColumns)" :data="merchantRows" :pagination="{ pageSize: 10 }" :scroll-x="1080" striped />
+        <n-data-table :columns="withTableSorters(merchantColumns)" :data="merchantRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1080" striped />
       </n-card>
     </template>
   </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, computed, h } from 'vue'
 import { NCard, NDataTable, NDatePicker, NSpace, NButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -78,7 +78,7 @@ onMounted(() => fetchData())
                 :columns="withTableSorters(columns)" 
                 :data="list" 
                 :loading="loading" 
-                :pagination="{ pageSize: 10 }"
+                :pagination="DEFAULT_TABLE_PAGINATION"
             />
         </n-card>
     </div>

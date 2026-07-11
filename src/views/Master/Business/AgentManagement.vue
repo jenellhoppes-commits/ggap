@@ -27,7 +27,7 @@ import {
 import type { DataTableColumns } from 'naive-ui'
 import { EditOutlined, SearchOutlined, VisibilityOutlined } from '@vicons/material'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { formatDisplayAmount } from '../../../utils/format'
 import { makeAgentLimitAccess } from '../../../mocks/gameLimits'
 import type { AgentBetLimitAccess } from '../../../types/gameLimit'
@@ -785,7 +785,7 @@ const limitAccessColumns: DataTableColumns<AgentBetLimitAccess> = [
     <n-data-table
       :columns="withTableSorters(columns)"
       :data="filteredAgents"
-      :pagination="{ pageSize: 10, showSizePicker: true, pageSizes: [10, 20, 50] }"
+      :pagination="DEFAULT_TABLE_PAGINATION"
       :scroll-x="2050"
     />
 
@@ -845,21 +845,21 @@ const limitAccessColumns: DataTableColumns<AgentBetLimitAccess> = [
               <n-alert type="info" :show-icon="false" class="mb-3">
                 可依每個供應商修改下層報價費率。L1 的上游是供應商成本，L2 / L3 的上游是上層代理給下層的報價。
               </n-alert>
-              <n-data-table :columns="withTableSorters(rateColumns)" :data="currentAgent.rates" :pagination="false" :scroll-x="980" />
+              <n-data-table :columns="withTableSorters(rateColumns)" :data="currentAgent.rates" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="980" />
             </n-tab-pane>
 
             <n-tab-pane name="merchants" tab="關聯商戶">
               <n-alert type="info" :show-icon="false" class="mb-3">
                 商戶報價用來計算代理應向商戶收取多少；GGAP 不直接向商戶開帳，正式帳務仍只看 L1 代理。
               </n-alert>
-              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentAgent.merchants" :pagination="false" :scroll-x="1180" />
+              <n-data-table :columns="withTableSorters(merchantColumns)" :data="currentAgent.merchants" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1180" />
             </n-tab-pane>
 
             <n-tab-pane name="bet-limits" tab="單槍群組">
               <n-alert type="info" :show-icon="false" class="mb-3">
                 代理只能把平台已開放的單槍群組再分配給下級代理或商戶；L3 不可再下放給子代理，但仍可套用到商戶。
               </n-alert>
-              <n-data-table :columns="withTableSorters(limitAccessColumns)" :data="currentAgent.bet_limit_access" :pagination="false" :scroll-x="1120" />
+              <n-data-table :columns="withTableSorters(limitAccessColumns)" :data="currentAgent.bet_limit_access" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1120" />
             </n-tab-pane>
 
             <n-tab-pane name="settlement" tab="結算邏輯">

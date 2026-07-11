@@ -1,5 +1,6 @@
 import type { DataScope, Portal, UserRole } from '../stores/auth'
 import { runtimeConfig } from '../config/runtime'
+import { loginPathByPortal } from '../config/permissions'
 
 export interface ApiResponse<T> {
   code: number
@@ -126,12 +127,6 @@ const clearAuthStorage = () => {
 const readStoredPortal = (): Portal | null => {
   const scope = readRequestScope()
   return scope.portal || null
-}
-
-const loginPathByPortal: Record<Portal, string> = {
-  admin: '/admin/login',
-  agent: '/agent/login',
-  merchant: '/merchant/login'
 }
 
 const resolveAppPath = (path: string) => {

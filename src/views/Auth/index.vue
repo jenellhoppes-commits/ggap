@@ -55,7 +55,7 @@ const portalRoleMap: Record<Portal, string> = {
 const portalHintMap: Record<Portal, string> = {
   admin: '全域營運、商務、內容、交易、財務、品質與系統管理。',
   agent: '代理查看自己的帳務、下級代理、關聯商戶與報表資料。',
-  merchant: '商戶查看會員、投注、交易流水、遊戲狀態與 API 串接資訊。'
+  merchant: '商戶查看會員、投注、遊戲、帳務參考與 API 串接資訊。'
 }
 
 const quickLoginMap: Record<Portal, { username: string; password: string; label: string }> = {
@@ -73,6 +73,11 @@ watchEffect(() => {
   if (routePortal.value) selectedPortal.value = routePortal.value
 })
 
+const getSafeRedirect = (portal: Portal) => {
+  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+  return redirect.startsWith(`/${portal}/`) ? redirect : defaultPathByPortal[portal]
+}
+
 const handleLogin = async () => {
   try {
     await formRef.value?.validate()
@@ -86,8 +91,7 @@ const handleLogin = async () => {
     }
 
     message.success('登入成功')
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : defaultPathByPortal[selectedPortal.value]
-    router.push(redirect)
+    router.push(getSafeRedirect(selectedPortal.value))
   } catch (error) {
     if (error instanceof Error) console.error(error)
   } finally {
@@ -96,6 +100,8 @@ const handleLogin = async () => {
 }
 
 const quickLogin = async (portal: Portal) => {
+  authStore.logout()
+
   if (routePortal.value && routePortal.value !== portal) {
     sessionStorage.setItem(pendingDemoLoginKey, portal)
     router.push({ path: loginPathByPortal[portal], query: { demo: portal } })
@@ -110,6 +116,7 @@ const quickLogin = async (portal: Portal) => {
 }
 
 const goPortalLogin = (portal: Portal) => {
+  if (selectedPortal.value !== portal) authStore.logout()
   selectedPortal.value = portal
   router.push(loginPathByPortal[portal])
 }

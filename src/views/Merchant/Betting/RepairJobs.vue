@@ -2,7 +2,7 @@
 import { h, ref, computed } from 'vue'
 import { NButton, NCard, NDataTable, NInput, NSelect, NTag, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface RepairRow {
   job_id: string
@@ -81,7 +81,7 @@ const columns: DataTableColumns<RepairRow> = [
         <n-select v-model:value="type" clearable placeholder="任務類型" :options="[{ label: 'Provider 補單', value: 'Provider 補單' }, { label: 'Callback 重送', value: 'Callback 重送' }]" />
         <n-button tertiary @click="keyword = ''; type = null">重置</n-button>
       </div>
-      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 10 }" :scroll-x="1320" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1320" striped />
     </n-card>
   </div>
 </template>

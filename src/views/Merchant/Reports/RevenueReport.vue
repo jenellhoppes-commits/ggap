@@ -1,5 +1,5 @@
-﻿<script setup lang="ts">
-import { withTableSorters } from "../../../utils/tableSort"
+<script setup lang="ts">
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from "../../../utils/tableSort"
 import { ref, onMounted, h } from 'vue'
 import { 
     NCard, NStatistic, NGrid, NGridItem, NDataTable, NButton, useMessage, NDatePicker
@@ -279,7 +279,7 @@ onMounted(fetchData)
             :columns="withTableSorters(columns)"
             :data="items"
             :loading="loading"
-            :pagination="{ pageSize: 10 }"
+            :pagination="DEFAULT_TABLE_PAGINATION"
             :row-key="(row: DailyReportItem) => row.key"
             striped
         />

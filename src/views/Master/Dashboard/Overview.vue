@@ -28,7 +28,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
 import MoneyText from '../../../components/Common/MoneyText.vue'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 import { adminDashboardService } from '../../../services/admin/dashboard'
 import type {
   AdminDashboardData,
@@ -343,7 +343,7 @@ onMounted(loadDashboard)
       <n-data-table
         :columns="withTableSorters(actionColumns)"
         :data="dashboard?.action_items || []"
-        :pagination="false"
+        :pagination="DEFAULT_TABLE_PAGINATION"
         :bordered="false"
         :scroll-x="880"
       />

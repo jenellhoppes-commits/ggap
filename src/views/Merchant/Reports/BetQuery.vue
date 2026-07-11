@@ -3,7 +3,7 @@ import { computed, h, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { NButton, NCard, NDataTable, NInput, NSelect, NTag } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 interface BetTraceRow {
   round_id: string
@@ -119,7 +119,7 @@ const columns = computed<DataTableColumns<BetTraceRow>>(() => [
         <n-select v-model:value="walletMode" clearable placeholder="Wallet 模式" :options="walletOptions" />
         <n-button tertiary @click="keyword = ''; status = null; walletMode = null">重置</n-button>
       </div>
-      <n-data-table :columns="withTableSorters(columns)" :data="visibleRows" :pagination="{ pageSize: 10 }" :scroll-x="isAgentPortal ? 1900 : 1700" striped />
+      <n-data-table :columns="withTableSorters(columns)" :data="visibleRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="isAgentPortal ? 1900 : 1700" striped />
     </n-card>
   </div>
 </template>

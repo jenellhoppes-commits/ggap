@@ -17,7 +17,7 @@ import {
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { SearchOutlined, VisibilityOutlined } from '@vicons/material'
-import { withTableSorters } from '../../../utils/tableSort'
+import { DEFAULT_TABLE_PAGINATION, withTableSorters } from '../../../utils/tableSort'
 
 type AuditAction = 'LOGIN' | 'CREATE' | 'UPDATE' | 'APPROVE' | 'EXPORT' | 'SECURITY' | 'SYSTEM'
 type AuditLevel = 'info' | 'warning' | 'critical'
@@ -265,7 +265,7 @@ const columns: DataTableColumns<AuditRow> = [
       </div>
     </div>
 
-    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="{ pageSize: 12 }" :scroll-x="1380" />
+    <n-data-table :columns="withTableSorters(columns)" :data="filteredRows" :pagination="DEFAULT_TABLE_PAGINATION" :scroll-x="1380" />
 
     <n-drawer v-model:show="showDetail" width="min(760px, 100vw)">
       <n-drawer-content closable>

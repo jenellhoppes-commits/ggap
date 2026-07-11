@@ -14,7 +14,7 @@ import {
 } from '@vicons/material'
 
 const renderIcon = (icon: Component) => () => h(NIcon, null, { default: () => h(icon) })
-const renderLink = (to: string, label: string) => () => h(RouterLink, { to }, { default: () => label })
+const renderLink = (to: string, label: string) => () => h(RouterLink, { to, title: label }, { default: () => label })
 
 export const merchantMenuOptions = (): MenuOption[] => [
   {
@@ -30,7 +30,7 @@ export const merchantMenuOptions = (): MenuOption[] => [
     label: '會員管理',
     key: 'player-group',
     children: [
-      { label: renderLink('/merchant/players', '會員列表'), key: 'merchant-players', icon: renderIcon(PeopleAltOutlined) }
+      { label: renderLink('/merchant/players', '會員管理'), key: 'merchant-players', icon: renderIcon(PeopleAltOutlined) }
     ]
   },
   {
@@ -45,7 +45,7 @@ export const merchantMenuOptions = (): MenuOption[] => [
   },
   {
     type: 'group',
-    label: '遊戲與錢包',
+    label: '遊戲與帳務',
     key: 'operation-group',
     children: [
       { label: renderLink('/merchant/games', '我的遊戲'), key: 'merchant-games', icon: renderIcon(SportsEsportsOutlined) },
@@ -58,7 +58,7 @@ export const merchantMenuOptions = (): MenuOption[] => [
     key: 'developer-group',
     children: [
       { label: renderLink('/merchant/developer/docs', 'API 文件'), key: 'merchant-developer-docs', icon: renderIcon(CodeOutlined) },
-      { label: renderLink('/merchant/developer/credentials', 'API 憑證 / 白名單'), key: 'DeveloperCenter', icon: renderIcon(CodeOutlined) },
+      { label: renderLink('/merchant/developer/credentials', 'API 金鑰 / 憑證'), key: 'DeveloperCenter', icon: renderIcon(CodeOutlined) },
       { label: renderLink('/merchant/developer/callback-test', 'Callback 測試'), key: 'merchant-callback-test', icon: renderIcon(CodeOutlined) },
       { label: renderLink('/merchant/developer/callback-logs', 'Callback 紀錄'), key: 'merchant-callback-logs', icon: renderIcon(DescriptionOutlined) }
     ]

@@ -1,4 +1,10 @@
-import type { DataTableColumns } from 'naive-ui'
+import type { DataTableColumns, PaginationProps } from 'naive-ui'
+
+export const DEFAULT_TABLE_PAGINATION: PaginationProps = {
+  pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50]
+}
 
 type SortableColumn<Row> = DataTableColumns<Row>[number] & {
   key?: string | number | symbol
